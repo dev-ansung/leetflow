@@ -1,20 +1,19 @@
-# ⚡ LeetFlow: Practice LeetCode Uninterrupted in Modern Python 3.14+
+# ⚡ LeetFlow: Practice LeetCode Uninterrupted in VS Code
 
 [![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-LeetFlow-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
-[![Python 3.14+](https://img.shields.io/badge/Python-3.14+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-35%20passing-brightgreen.svg)]()
 [![Linter](https://img.shields.io/badge/linter-Biome-60a5fa.svg)]()
 
-> **The zero-friction, uninterrupted flow state for Python 3.14+ LeetCode practice.**  
-> No browser tabs. No copy-pasting code. No manual test runner setup. **No paywall roadblocks.** Just sit down, stay in your editor, and solve problems with instant local execution, modern Python 3.14 standards, and cognitive spaced repetition.
+> **The zero-friction, uninterrupted flow state for LeetCode practice.**  
+> No browser tabs. No copy-pasting code. No manual test runner setup. **No paywall roadblocks.** Just sit down, stay in your editor, and solve problems with instant local execution, modern Python templates, and cognitive spaced repetition.
 
 ---
 
 ```
 +-----------------------------------------------------------------------------------------+
-| [Practice Tracks]   | solution.py (Modern Python 3.14+)       | Problem Statement       |
+| [Practice Tracks]   | solution.py (Clean Modern Python)       | Problem Statement       |
 | ⚡ Next Problem      | class Solution:                         | #1. Two Sum   [Easy]    |
 | 🔀 Grind 75 (12/75) |     def two_sum(                        | ----------------------- |
 | ▶ Week 1            |         self,                           | [▶ Run] [✔ Submit] [↺]  |
@@ -29,17 +28,17 @@
 
 ## 💡 The Core Value: Pure Uninterrupted Flow
 
-Grinding coding interviews in Python is full of friction: switching browser tabs, wrestling with clunky web editors, copy-pasting code back and forth to debug, dealing with outdated legacy templates (`List[int]`, `Optional[TreeNode]`, `camelCase`), hitting paywalls on company questions, and forgetting patterns you solved two weeks ago.
+Grinding coding interviews is full of friction: switching browser tabs, wrestling with clunky web editors, copy-pasting code back and forth to debug, dealing with outdated legacy templates (`List[int]`, `Optional[TreeNode]`, `camelCase`), hitting paywalls on company questions, and forgetting patterns you solved two weeks ago.
 
 **LeetFlow streamlines the entire practice loop into a single, uninterrupted workflow inside VS Code:**
 
 | What Slows You Down | How LeetFlow Keeps You in Flow |
 |:---|:---|
 | 🔒 **Premium & locked paywalls** | **Universal mirror sourcing** seamlessly loads locked and premium interview questions (e.g. Alien Dictionary, Meeting Rooms II) with starter templates and test cases. |
-| 🔀 **Endless window switching** | Problem description and clean Python 3.14 code open side-by-side with 1 click. |
+| 🔀 **Endless window switching** | Problem description and clean code open side-by-side with 1 click. |
 | ⏳ **Slow remote test queues** | Sub-100ms local test execution in an isolated sandbox with zero network latency. |
 | 📋 **Manual test case setup** | Auto-parses all sample cases and runs them automatically without manual setup. |
-| 🦕 **Legacy Python boilerplate** | Auto-modernizes templates to Python 3.14 standards (`list[int]`, `int | None`, `snake_case`). |
+| 🦕 **Legacy Python boilerplate** | Auto-modernizes templates to modern Python standards (`list[int]`, `int | None`, `snake_case`). |
 | 🧠 **The forgetting curve** | Built-in SuperMemo-2 (SM-2) spaced repetition schedules reviews right before memory decays. |
 | 📊 **Vanity solve counts** | Replaces useless problem counters with an honest **0-100% Interview Readiness score** and **dynamic Top 6 topics radar chart**. |
 
@@ -48,26 +47,34 @@ Grinding coding interviews in Python is full of friction: switching browser tabs
 ## 🚀 The Seamless 4-Step Practice Loop
 
 ```
-  [ 1. Pick Problem ] ──────► [ 2. Code in Python 3.14 ]
+  [ 1. Pick Problem ] ──────► [ 2. Code in Editor ]
           ▲                               │
           │                               ▼
   [ 4. Friction & Next ] ◄──── [ 3. Instant Local Test ]
 ```
 
 1. **Pick or Hit Next**: Click **`⚡ Next Recommended Problem`** or select a problem from curated tracks (Grind 75, Blind 75, NeetCode 150).
-2. **Code with Modern Python**: Work with your favorite VS Code theme, Vim keybindings, Copilot, and local Python interpreter (with auto-detected Python 3.14 support).
+2. **Code with Your Own Setup**: Work with your favorite VS Code theme, Vim keybindings, Copilot, and local Python interpreter (with auto-detected Python 3.14 support).
 3. **Run Tests Instantly**: Press **`▶ Run Tests`** (`$(beaker)`) in the editor title bar to evaluate all test cases locally with detailed diffs.
-4. **Submit & Review**: Press **`✔ Submit Solution`** (`$(pass-filled)`), rate your cognitive friction (Trivial, Smooth, Struggled, Looked at solution), and roll straight into your next problem without breaking concentration.
+4. **Submit & Review**: Press **`✔ Submit Solution`** (`$(pass-filled)`), rate your cognitive friction (Trivial, Smooth, Struggled, Looked up solution), and roll straight into your next problem without breaking concentration.
 
 ---
 
 ## 🎯 Key Features
 
-### 1. 🐍 Modern Python 3.14+ Standards Out of the Box
+### 1. 🔓 Universal Sourcing & Zero Paywall Roadblocks
+Never get stopped mid-roadmap because a crucial interview question is locked behind a paywall.
+
+* **Automatic Fallback Mirroring**: When opening company-tagged or locked questions (e.g. `#269 Alien Dictionary`, `#253 Meeting Rooms II`, `#323 Connected Components`), LeetFlow automatically sources the full problem statement, function signatures, and sample test cases.
+* **Open Anything**: Open any problem by numeric ID (`#1`, `#242`, `#269`), slug (`valid-anagram`), or full URL (`leetcode.com` / `leetcode.cn`).
+
+---
+
+### 2. 🐍 Modern Python Standards Out of the Box
 LeetCode default templates are stuck in legacy Python 2/early-3 conventions. LeetFlow automatically modernizes all problem templates on the fly:
 
 ```python
-# Clean, modern Python 3.14 standard
+# Clean, modern Python standard
 class Solution:
     def two_sum(self, nums: list[int], target: int) -> list[int]:
         pass
@@ -78,14 +85,6 @@ class Solution:
 * **PEP 604 Unions**: Clean pipe syntax `TreeNode | None` instead of `Optional[TreeNode]`.
 * **Auto-Injected Helpers**: Typed `ListNode` and `TreeNode` class definitions are provided directly in your file so your IDE language server never complains.
 * **Interpreter Auto-Discovery**: Automatically discovers and prioritizes modern Python 3.14 executables with a quick switch command (`LeetFlow: Select Python Interpreter...`).
-
----
-
-### 2. 🔓 Universal Sourcing & Zero Paywall Roadblocks
-Never get stopped mid-roadmap because a crucial interview question is locked behind a paywall.
-
-* **Automatic Fallback Mirroring**: When opening company-tagged or locked questions (e.g. `#269 Alien Dictionary`, `#253 Meeting Rooms II`, `#323 Connected Components`), LeetFlow automatically sources the full problem statement, function signatures, and sample test cases.
-* **Open Anything**: Open any problem by numeric ID (`#1`, `#242`, `#269`), slug (`valid-anagram`), or full URL (`leetcode.com` / `leetcode.cn`).
 
 ---
 
