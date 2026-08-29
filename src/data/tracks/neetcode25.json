@@ -1,0 +1,204 @@
+{
+  "id": "neetcode25",
+  "name": "NeetCode 25",
+  "description": "25 essential coding interview problems for quick preparation",
+  "author": "NeetCode",
+  "version": "1.0.0",
+  "categories": [
+    {
+      "name": "Array & Hashing",
+      "problems": [
+        {
+          "id": 217,
+          "slug": "contains-duplicate",
+          "title": "Contains Duplicate",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 242,
+          "slug": "valid-anagram",
+          "title": "Valid Anagram",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 1,
+          "slug": "two-sum",
+          "title": "Two Sum",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 49,
+          "slug": "group-anagrams",
+          "title": "Group Anagrams",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Two Pointers",
+      "problems": [
+        {
+          "id": 125,
+          "slug": "valid-palindrome",
+          "title": "Valid Palindrome",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 11,
+          "slug": "container-with-most-water",
+          "title": "Container With Most Water",
+          "difficulty": "Medium"
+        },
+        {
+          "id": 15,
+          "slug": "3sum",
+          "title": "3Sum",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Sliding Window",
+      "problems": [
+        {
+          "id": 121,
+          "slug": "best-time-to-buy-and-sell-stock",
+          "title": "Best Time to Buy and Sell Stock",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 3,
+          "slug": "longest-substring-without-repeating-characters",
+          "title": "Longest Substring Without Repeating Characters",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Stack",
+      "problems": [
+        {
+          "id": 20,
+          "slug": "valid-parentheses",
+          "title": "Valid Parentheses",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 150,
+          "slug": "evaluate-reverse-polish-notation",
+          "title": "Evaluate Reverse Polish Notation",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Binary Search",
+      "problems": [
+        {
+          "id": 704,
+          "slug": "binary-search",
+          "title": "Binary Search",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 33,
+          "slug": "search-in-rotated-sorted-array",
+          "title": "Search in Rotated Sorted Array",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Linked List",
+      "problems": [
+        {
+          "id": 206,
+          "slug": "reverse-linked-list",
+          "title": "Reverse Linked List",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 21,
+          "slug": "merge-two-sorted-lists",
+          "title": "Merge Two Sorted Lists",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 141,
+          "slug": "linked-list-cycle",
+          "title": "Linked List Cycle",
+          "difficulty": "Easy"
+        }
+      ]
+    },
+    {
+      "name": "Trees",
+      "problems": [
+        {
+          "id": 226,
+          "slug": "invert-binary-tree",
+          "title": "Invert Binary Tree",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 104,
+          "slug": "maximum-depth-of-binary-tree",
+          "title": "Maximum Depth of Binary Tree",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 100,
+          "slug": "same-tree",
+          "title": "Same Tree",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 102,
+          "slug": "binary-tree-level-order-traversal",
+          "title": "Binary Tree Level Order Traversal",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Dynamic Programming",
+      "problems": [
+        {
+          "id": 70,
+          "slug": "climbing-stairs",
+          "title": "Climbing Stairs",
+          "difficulty": "Easy"
+        },
+        {
+          "id": 198,
+          "slug": "house-robber",
+          "title": "House Robber",
+          "difficulty": "Medium"
+        },
+        {
+          "id": 322,
+          "slug": "coin-change",
+          "title": "Coin Change",
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Graphs",
+      "problems": [
+        {
+          "id": 200,
+          "slug": "number-of-islands",
+          "title": "Number of Islands",
+          "difficulty": "Medium"
+        },
+        {
+          "id": 133,
+          "slug": "clone-graph",
+          "title": "Clone Graph",
+          "difficulty": "Medium"
+        }
+      ]
+    }
+  ]
+}
