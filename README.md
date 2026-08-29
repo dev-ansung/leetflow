@@ -39,6 +39,7 @@ Grinding coding interviews in the browser is full of friction: switching windows
 | 📋 **Manual test case setup** | Auto-parses all sample cases and runs them automatically without manual setup. |
 | 🦕 **Legacy Python boilerplate** | Auto-modernizes templates to Python 3.14 standards (`list[int]`, `int | None`, `snake_case`). |
 | 🧠 **The forgetting curve** | Built-in SuperMemo-2 (SM-2) spaced repetition schedules reviews right before memory decays. |
+| 🔒 **Premium & locked paywalls** | Universal mirror sourcing seamlessly loads locked/premium interview questions (e.g. Alien Dictionary, Meeting Rooms II) with starter templates and test cases. |
 | 📊 **Vanity solve counts** | Replaces useless problem counters with an honest **0-100% Interview Readiness score** and **dynamic Top 6 topics radar chart**. |
 
 ---
