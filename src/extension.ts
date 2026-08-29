@@ -366,11 +366,19 @@ async function startProblemSession(
         const testsPath = path.join(wsDir, "tests.json");
 
         if (!fs.existsSync(solutionPath)) {
-          fs.writeFileSync(solutionPath, problem.starterCode, "utf-8");
+          const modernized = PythonModernizer.modernize(problem.starterCode);
+          fs.writeFileSync(solutionPath, modernized, "utf-8");
         } else {
-          // If existing solution contains outdated typing, auto-upgrade
+          // If existing solution contains outdated typing or missing class definitions, auto-upgrade
           const existing = fs.readFileSync(solutionPath, "utf-8");
-          if (existing.includes("List[") || existing.includes("Optional[")) {
+          if (
+            existing.includes("List[") ||
+            existing.includes("Optional[") ||
+            ((existing.includes("ListNode") || existing.includes("list_node")) &&
+              !/(^|\n)class\s+ListNode[\s:(]/m.test(existing)) ||
+            ((existing.includes("TreeNode") || existing.includes("tree_node")) &&
+              !/(^|\n)class\s+TreeNode[\s:(]/m.test(existing))
+          ) {
             const upgraded = PythonModernizer.modernize(existing);
             fs.writeFileSync(solutionPath, upgraded, "utf-8");
           }

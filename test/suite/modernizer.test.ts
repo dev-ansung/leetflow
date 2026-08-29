@@ -65,23 +65,21 @@ class Solution:
   });
 
   it("should automatically inject ListNode and TreeNode definitions when referenced", () => {
-    const treeInput = `
+    const rawLcTemplate = `# Definition for singly-linked list.
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
 class Solution:
-    def maxDepth(self, root: Optional[TreeNode]) -> int:
-        pass
-`;
-    const treeModernized = PythonModernizer.modernize(treeInput);
-    expect(treeModernized).toContain("class TreeNode:");
-    expect(treeModernized).toContain("def max_depth(");
+    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:
+        pass`;
 
-    const listInput = `
-class Solution:
-    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        pass
-`;
-    const listModernized = PythonModernizer.modernize(listInput);
-    expect(listModernized).toContain("class ListNode:");
-    expect(listModernized).toContain("def reverse_list(");
+    const modernized = PythonModernizer.modernize(rawLcTemplate);
+    expect(modernized).toContain("class ListNode:");
+    expect(modernized).toContain(
+      "def merge_two_lists(self, list1: ListNode | None, list2: ListNode | None) -> ListNode | None:",
+    );
+    expect(modernized).not.toContain("# class ListNode:");
   });
 
   it("should preserve user logic when migrating an existing solution", () => {

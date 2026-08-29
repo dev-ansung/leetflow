@@ -14,9 +14,7 @@ export class PythonModernizer {
 
   static camelToSnake(name: string): string {
     if (!name || name.startsWith("__")) return name;
-    // Handle single letter capitalizations like topKFrequent -> top_k_frequent
     let s = name.replace(/([a-z0-9])([A-Z])/g, "$1_$2");
-    // Handle consecutive capitals like HTTPServer -> http_server
     s = s.replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2");
     return s.toLowerCase();
   }
@@ -25,7 +23,6 @@ export class PythonModernizer {
     let result = code;
 
     // 1. Modernize typing generics (PEP 585 & PEP 604)
-    // Replace List[...] -> list[...]
     result = result.replace(/\bList\[/g, "list[");
     result = result.replace(/\bDict\[/g, "dict[");
     result = result.replace(/\bSet\[/g, "set[");
@@ -52,13 +49,24 @@ export class PythonModernizer {
     // 3. Clean redundant typing imports
     result = result.replace(/^from\s+typing\s+import\s+.*[\r\n]*/gm, "");
 
-    // 4. Inject ListNode / TreeNode helpers if referenced and not already declared
+    // 4. Clean out commented-out boilerplate definitions
+    result = result.replace(
+      /#\s*Definition for singly-linked list\.[\s\S]*?#\s*self\.next\s*=\s*next\s*\n?/gi,
+      "",
+    );
+    result = result.replace(
+      /#\s*Definition for a binary tree node\.[\s\S]*?#\s*self\.right\s*=\s*right\s*\n?/gi,
+      "",
+    );
+
+    // 5. Check if uncommented class definition exists
+    const hasUncommentedListNode = /(^|\n)class\s+ListNode[\s:(]/m.test(result);
+    const hasUncommentedTreeNode = /(^|\n)class\s+TreeNode[\s:(]/m.test(result);
+
     const needsListNode =
-      (result.includes("ListNode") || result.includes("list_node")) &&
-      !result.includes("class ListNode");
+      (result.includes("ListNode") || result.includes("list_node")) && !hasUncommentedListNode;
     const needsTreeNode =
-      (result.includes("TreeNode") || result.includes("tree_node")) &&
-      !result.includes("class TreeNode");
+      (result.includes("TreeNode") || result.includes("tree_node")) && !hasUncommentedTreeNode;
 
     const helpers: string[] = [];
     if (needsListNode) {
