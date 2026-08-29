@@ -405,10 +405,10 @@ function updateTimerDisplay() {
   const title = session.currentProblem.title;
 
   if (session.isPaused) {
-    statusBarItem.text = `$(debug-pause) LeetFlow: ⏸ ${timeStr} (PAUSED)`;
+    statusBarItem.text = `LeetFlow: ⏸ ${timeStr} (PAUSED)`;
     statusBarItem.tooltip = `${title} · Click to Resume Timer`;
   } else {
-    statusBarItem.text = `$(pulse) LeetFlow: ⏱ ${timeStr}`;
+    statusBarItem.text = `LeetFlow: ⏱ ${timeStr}`;
     statusBarItem.tooltip = `${title} · Click to Pause Timer`;
   }
 }
