@@ -1,13 +1,13 @@
 # ⚡ LeetFlow: Practice LeetCode Uninterrupted in VS Code
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
+[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-LeetFlow-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-35%20passing-brightgreen.svg)]()
 [![Linter](https://img.shields.io/badge/linter-Biome-60a5fa.svg)]()
 
 > **The zero-friction, uninterrupted flow state for LeetCode practice.**  
-> No browser tabs. No copy-pasting code. No manual test runner setup. Just sit down, stay in your editor, and solve problems with instant local execution, modern Python 3.14 standards, and cognitive spaced repetition.
+> No browser tabs. No copy-pasting code. No manual test runner setup. **No paywall roadblocks.** Just sit down, stay in your editor, and solve problems with instant local execution, modern Python 3.14 standards, and cognitive spaced repetition.
 
 ---
 
@@ -28,18 +28,18 @@
 
 ## 💡 The Core Value: Pure Uninterrupted Flow
 
-Grinding coding interviews in the browser is full of friction: switching windows, wrestling with clunky web editors, copy-pasting code back and forth to debug, dealing with outdated legacy templates, and forgetting patterns you solved two weeks ago.
+Grinding coding interviews is full of friction: switching browser tabs, wrestling with clunky web editors, copy-pasting code back and forth to debug, dealing with outdated legacy templates, hitting paywalls on premium questions, and forgetting patterns you solved two weeks ago.
 
 **LeetFlow streamlines the entire practice loop into a single, uninterrupted workflow inside VS Code:**
 
 | What Slows You Down | How LeetFlow Keeps You in Flow |
 |:---|:---|
+| 🔒 **Premium & locked paywalls** | **Universal mirror sourcing** seamlessly loads locked and premium interview questions (e.g. Alien Dictionary, Meeting Rooms II) with starter templates and test cases. |
 | 🔀 **Endless window switching** | Problem description and clean code open side-by-side with 1 click. |
 | ⏳ **Slow remote test queues** | Sub-100ms local test execution in an isolated sandbox with zero network latency. |
 | 📋 **Manual test case setup** | Auto-parses all sample cases and runs them automatically without manual setup. |
 | 🦕 **Legacy Python boilerplate** | Auto-modernizes templates to Python 3.14 standards (`list[int]`, `int | None`, `snake_case`). |
 | 🧠 **The forgetting curve** | Built-in SuperMemo-2 (SM-2) spaced repetition schedules reviews right before memory decays. |
-| 🔒 **Premium & locked paywalls** | Universal mirror sourcing seamlessly loads locked/premium interview questions (e.g. Alien Dictionary, Meeting Rooms II) with starter templates and test cases. |
 | 📊 **Vanity solve counts** | Replaces useless problem counters with an honest **0-100% Interview Readiness score** and **dynamic Top 6 topics radar chart**. |
 
 ---
@@ -62,7 +62,15 @@ Grinding coding interviews in the browser is full of friction: switching windows
 
 ## 🎯 Key Features
 
-### 1. 🔀 Curated Structured Tracks with Chronological Progression
+### 1. 🔓 Universal Sourcing & Zero Paywall Roadblocks
+Never get stopped mid-roadmap because a crucial interview question is locked behind a paywall.
+
+* **Automatic Fallback Mirroring**: When opening company-tagged or locked questions (e.g. `#269 Alien Dictionary`, `#253 Meeting Rooms II`, `#323 Connected Components`), LeetFlow automatically sources the full problem statement, function signatures, and sample test cases.
+* **Open Anything**: Open any problem by numeric ID (`#1`, `#242`, `#269`), slug (`valid-anagram`), or full URL (`leetcode.com` / `leetcode.cn`).
+
+---
+
+### 2. 🔀 Curated Structured Tracks with Chronological Progression
 Work through industry-standard interview preparation roadmaps with a single click. Solving a problem in one roadmap automatically checks it off across all others:
 
 * **Grind 75** (Tech Interview Handbook 75-question curriculum ordered chronologically by weeks)
@@ -74,7 +82,7 @@ Work through industry-standard interview preparation roadmaps with a single clic
 
 ---
 
-### 2. 🐍 Modern Python 3.14+ Standards Out of the Box
+### 3. 🐍 Modern Python 3.14+ Standards Out of the Box
 LeetCode default templates are stuck in legacy Python typing. LeetFlow automatically modernizes all problem templates on the fly:
 
 ```python
@@ -91,7 +99,7 @@ class Solution:
 
 ---
 
-### 3. 🕸 Dynamic Top 6 Topics Performance Radar & Telemetry
+### 4. 🕸 Dynamic Top 6 Topics Performance Radar & Telemetry
 Open the **Dashboard** (`Cmd+Shift+P` -> `LeetFlow: Open Dashboard`) to view:
 
 * **Dynamic Top 6 Topics Radar Chart**: Visualizes your algorithmic strengths and coverage balance across your most practiced LeetCode topic tags (Array, Two Pointers, Dynamic Programming, Binary Tree, Graph, Greedy, etc.).
@@ -102,9 +110,8 @@ Open the **Dashboard** (`Cmd+Shift+P` -> `LeetFlow: Open Dashboard`) to view:
 
 ---
 
-### 4. ↺ Reset Solution & Zero-Friction Controls
+### 5. ↺ Reset Solution & Zero-Friction Controls
 * **Reset Current Solution (`$(discard)`)**: Cleanly reset your active problem back to its initial modern starter template with one click.
-* **Universal Problem Sourcing**: Open any problem by number (`#1`, `#242`), slug (`valid-anagram`), or URL (`leetcode.com` / `leetcode.cn`), with fallback mirror support for locked problems.
 * **Status Bar Stopwatch**: Track active solving time with click-to-pause functionality.
 * **Data Sovereignty**: Export your entire history to a JSON backup, restore anytime, or purge cached scratch files.
 
