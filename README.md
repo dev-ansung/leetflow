@@ -1,7 +1,7 @@
 # LeetFlow: Intelligent VS Code Extension for LeetCode Practice
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/microsoft/vscode-icons/master/icons/dark/pulse.svg" width="96" height="96" alt="LeetFlow Logo" />
+  <h1>⚡ LeetFlow</h1>
 </p>
 
 <p align="center">
