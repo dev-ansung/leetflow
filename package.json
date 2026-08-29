@@ -82,6 +82,12 @@
         "title": "LeetFlow: Pause / Resume Stopwatch Timer",
         "category": "LeetFlow",
         "icon": "$(debug-pause)"
+      },
+      {
+        "command": "leetflow.selectInterpreter",
+        "title": "LeetFlow: Select Python Interpreter...",
+        "category": "LeetFlow",
+        "icon": "$(file-code)"
       }
     ],
     "viewsContainers": {
@@ -140,6 +146,16 @@
           "when": "resourceExtname == .py"
         }
       ]
+    },
+    "configuration": {
+      "title": "LeetFlow",
+      "properties": {
+        "leetflow.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to Python interpreter (e.g. /opt/homebrew/bin/python3.14 or .venv/bin/python)"
+        }
+      }
     }
   },
   "scripts": {

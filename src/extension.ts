@@ -325,6 +325,61 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // 15. Register Command: Select Python Interpreter
+  const selectInterpreterCmd = vscode.commands.registerCommand(
+    "leetflow.selectInterpreter",
+    async () => {
+      const interpreters = await PythonResolver.discoverInterpreters();
+      const current = PythonResolver.getActivePythonPath();
+
+      const items: (vscode.QuickPickItem & { path?: string })[] = interpreters.map((info) => ({
+        label: `${info.version} ${info.isRecommended ? "⭐ (Recommended)" : ""}`,
+        description: info.path === current ? `${info.path} (Active)` : info.path,
+        detail: info.isRecommended
+          ? "Supports modern Python 3.14 standards, PEP 585 generics, and PEP 604 unions"
+          : undefined,
+        path: info.path,
+      }));
+
+      items.push({
+        label: "$(folder) Enter custom Python interpreter path...",
+        description: "Specify custom binary or virtual environment path",
+      });
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: `Select Python interpreter for LeetFlow (Current: ${current})`,
+      });
+
+      if (!selected) return;
+
+      if (selected.path) {
+        PythonResolver.setActivePythonPath(selected.path);
+        vscode.window.showInformationMessage(
+          `LeetFlow: Python interpreter set to ${selected.label} (${selected.path})`,
+        );
+      } else {
+        const customPath = await vscode.window.showInputBox({
+          prompt: "Enter the absolute path to your Python executable",
+          value: current,
+        });
+        if (customPath?.trim()) {
+          const trimmed = customPath.trim();
+          if (PythonResolver.testPython(trimmed)) {
+            PythonResolver.setActivePythonPath(trimmed);
+            const ver = PythonResolver.getVersion(trimmed);
+            vscode.window.showInformationMessage(
+              `LeetFlow: Python interpreter set to ${ver} (${trimmed})`,
+            );
+          } else {
+            vscode.window.showErrorMessage(
+              `Failed to execute '${trimmed} --version'. Please verify the path.`,
+            );
+          }
+        }
+      }
+    },
+  );
+
   context.subscriptions.push(
     nextCmd,
     startCmd,
@@ -338,6 +393,7 @@ export function activate(context: vscode.ExtensionContext) {
     consoleCmd,
     switchTrackCmd,
     toggleTimerCmd,
+    selectInterpreterCmd,
   );
 }
 

@@ -1,4 +1,5 @@
 import type { TestCase, TestResult } from "../types";
+import { PythonResolver } from "../utils/python-resolver";
 import { BaseSubprocessRunner } from "./base-runner";
 
 export class PythonRunner extends BaseSubprocessRunner {
@@ -16,7 +17,8 @@ export class PythonRunner extends BaseSubprocessRunner {
   }
 
   protected getCommand(harnessPath: string): { binary: string; args: string[] } {
-    return { binary: "python3", args: [harnessPath] };
+    const pyBinary = PythonResolver.getActivePythonPath();
+    return { binary: pyBinary, args: [harnessPath] };
   }
 
   protected generateHarness(
