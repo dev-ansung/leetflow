@@ -36,7 +36,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       const activePct =
         activeProblems.length > 0 ? Math.round((activeSolved / activeProblems.length) * 100) : 0;
 
-      // 1. Next Problem
+      // 1. Next Problem Action
       const nextItem = new vscode.TreeItem(
         "Next Recommended Problem",
         vscode.TreeItemCollapsibleState.None,
@@ -45,7 +45,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       nextItem.command = { command: "leetflow.next", title: "Next Problem" };
       nextItem.description = `Auto-match (${activeTrack.name})`;
 
-      // 2. Quick Open
+      // 2. Quick Open Action
       const openItem = new vscode.TreeItem(
         "Open Problem by # / URL",
         vscode.TreeItemCollapsibleState.None,
@@ -54,58 +54,38 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       openItem.command = { command: "leetflow.openProblem", title: "Open Problem" };
       openItem.description = "Quick open";
 
-      // 3. Switch Track
+      // 3. Switch Roadmap Action
       const switchItem = new vscode.TreeItem(
-        "Switch Active Roadmap...",
+        "Switch Roadmap",
         vscode.TreeItemCollapsibleState.None,
       );
-      switchItem.iconPath = new vscode.ThemeIcon("sync", new vscode.ThemeColor("charts.purple"));
+      switchItem.iconPath = new vscode.ThemeIcon(
+        "arrow-swap",
+        new vscode.ThemeColor("charts.purple"),
+      );
       switchItem.command = { command: "leetflow.switchTrack", title: "Switch Roadmap" };
-      switchItem.description = activeTrack.name;
+      switchItem.description = `${activeTrack.name} · ${activeSolved}/${activeProblems.length} (${activePct}%)`;
 
-      // 4. Active Track Root
-      const activeRoot = new vscode.TreeItem(
-        `🎯 ${activeTrack.name}`,
-        vscode.TreeItemCollapsibleState.Expanded,
-      );
-      activeRoot.contextValue = `track_root_${activeTrack.id}`;
-      activeRoot.iconPath = new vscode.ThemeIcon("target");
-      activeRoot.description = `${activeSolved}/${activeProblems.length} (${activePct}%)`;
-
-      // 5. All Tracks Folder
-      const allTracksRoot = new vscode.TreeItem(
-        "📚 All Curated Roadmaps",
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
-      allTracksRoot.contextValue = "all_tracks_root";
-      allTracksRoot.iconPath = new vscode.ThemeIcon("library");
-      allTracksRoot.description = `${TrackRegistry.getAllTracks().length} study plans`;
-
-      return [nextItem, openItem, switchItem, activeRoot, allTracksRoot];
-    }
-
-    // Expanding Active Track
-    if (element.contextValue?.startsWith("track_root_")) {
-      const trackId = element.contextValue.replace("track_root_", "");
-      const track = TrackRegistry.getTrack(trackId);
-
-      return track.categories.map((cat) => {
+      // 4. Render Active Track Categories Directly
+      const categoryFolders = activeTrack.categories.map((cat) => {
         const catProblems = cat.problems;
-        const solvedCount = catProblems.filter((p) => solvedSlugs.has(p.slug)).length;
+        const catSolved = catProblems.filter((p) => solvedSlugs.has(p.slug)).length;
         const totalCount = catProblems.length;
 
         const catFolder = new vscode.TreeItem(cat.name, vscode.TreeItemCollapsibleState.Collapsed);
-        catFolder.contextValue = `cat_${track.id}_${cat.name}`;
-        catFolder.description = `${solvedCount}/${totalCount}`;
+        catFolder.contextValue = `cat_${activeTrack.id}_${cat.name}`;
+        catFolder.description = `${catSolved}/${totalCount}`;
         catFolder.iconPath =
-          solvedCount === totalCount && totalCount > 0
+          catSolved === totalCount && totalCount > 0
             ? new vscode.ThemeIcon("pass-filled", new vscode.ThemeColor("charts.green"))
             : new vscode.ThemeIcon("symbol-folder");
         return catFolder;
       });
+
+      return [nextItem, openItem, switchItem, ...categoryFolders];
     }
 
-    // Expanding Category inside Track
+    // Expanding Category
     if (element.contextValue?.startsWith("cat_")) {
       const parts = element.contextValue.split("_");
       const trackId = parts[1];
@@ -115,23 +95,6 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
 
       if (!cat) return [];
       return cat.problems.map((p) => this.createProblemItem(p, cat.name, solvedSlugs.has(p.slug)));
-    }
-
-    // Expanding "All Curated Roadmaps"
-    if (element.contextValue === "all_tracks_root") {
-      const allTracks = TrackRegistry.getAllTracks();
-      return allTracks.map((t) => {
-        const tProblems = TrackRegistry.getTrackProblems(t.id);
-        const solvedCount = tProblems.filter((p) => solvedSlugs.has(p.slug)).length;
-        const totalCount = tProblems.length;
-        const pct = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
-
-        const tItem = new vscode.TreeItem(t.name, vscode.TreeItemCollapsibleState.Collapsed);
-        tItem.contextValue = `track_root_${t.id}`;
-        tItem.description = `${solvedCount}/${totalCount} (${pct}%)`;
-        tItem.iconPath = new vscode.ThemeIcon("book");
-        return tItem;
-      });
     }
 
     return [];

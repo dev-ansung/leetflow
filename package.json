@@ -102,18 +102,23 @@
     "menus": {
       "view/title": [
         {
-          "command": "leetflow.next",
+          "command": "leetflow.switchTrack",
           "when": "view == leetflow.tracksView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "leetflow.openProblem",
           "when": "view == leetflow.tracksView",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "leetflow.next",
+          "when": "view == leetflow.tracksView",
+          "group": "navigation@3"
         },
         {
           "command": "leetflow.console",
-          "when": "view == leetflow.tracksView || view == leetflow.statsView",
+          "when": "view == leetflow.statsView",
           "group": "navigation"
         }
       ],
