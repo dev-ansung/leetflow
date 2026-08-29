@@ -118,23 +118,26 @@ sequenceDiagram
 | Command | Identifier | Description | Shortcut |
 |---|---|---|---|
 | **Next Recommended Problem** | `leetflow.next` | Analyzes your mastery and starts the next optimal problem session | `Cmd+Shift+P` $\rightarrow$ `LeetFlow: Next` |
+| **Open Problem by Number / URL** | `leetflow.openProblem` | Opens any problem by number (e.g. `11`), slug, or LeetCode URL | Sidebar $(search)$ icon |
 | **Run Tests** | `leetflow.test` | Executes current solution against sample cases in sandbox | Editor title bar $(beaker)$ |
 | **Submit Solution** | `leetflow.submit` | Evaluates all cases, stops timer, logs friction rating, and updates Elo | Editor title bar $(pass-filled)$ |
-| **Start Problem** | `leetflow.startProblem` | Starts a specific problem session by slug or ID | Activity Bar click |
+| **Modernize Python Solution** | `leetflow.modernizeSolution` | Migrates active file to PEP 8 snake_case and PEP 585/604 typing | `Cmd+Shift+P` |
 | **View Stats & Mastery** | `leetflow.stats` | Displays topic Elo radar, roadmap progress, and practice streaks | Status Bar click |
+| **Reset Progress Data** | `leetflow.resetProgress` | Wipes attempt history and resets topic Elo ratings to fresh state | `Cmd+Shift+P` |
 
 ---
 
 ## 5. Quick Start & Installation
 
-### Option A: Install from Local VSIX (Included in Repo)
-```bash
-# Clone the repository
-git clone https://github.com/youngyangyang04/leetflow.git
-cd leetflow
+### Option A: Install from GitHub Release (.vsix)
+1. Download the latest `leetflow-x.x.x.vsix` release archive from **[GitHub Releases](https://github.com/youngyangyang04/leetflow/releases)**.
+2. In VS Code, open the **Extensions** view (`Cmd+Shift+X` or `Ctrl+Shift+X`).
+3. Click the **`...`** (Views and More Actions) menu in the top-right corner of the Extensions sidebar.
+4. Select **Install from VSIX...** and pick the downloaded `.vsix` file.
 
-# Install into VS Code
-code --install-extension artifacts/vsix/leetflow-0.1.0.vsix --force
+*Alternatively via command line:*
+```bash
+code --install-extension leetflow-0.1.0.vsix --force
 ```
 
 ### Option B: Build from Source with Bun
