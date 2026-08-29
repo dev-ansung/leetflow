@@ -63,7 +63,12 @@ def run_all():
         sys.exit(0)
 
     sol_instance = mod.Solution()
-    fn = getattr(sol_instance, ${JSON.stringify(functionName)}, None)
+    target_fn = ${JSON.stringify(functionName)}
+    fn = getattr(sol_instance, target_fn, None)
+    if fn is None:
+        import re
+        snake_name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", target_fn).lower()
+        fn = getattr(sol_instance, snake_name, None)
     if fn is None:
         methods = [m for m in dir(sol_instance) if not m.startswith("_") and callable(getattr(sol_instance, m))]
         if methods:
