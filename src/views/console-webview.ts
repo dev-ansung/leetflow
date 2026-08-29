@@ -220,6 +220,10 @@ export class LeetFlowConsoleWebview {
         const durMin = Math.round((a.durationSec / 60) * 10) / 10;
         const thinkSec = a.thinkingSec;
 
+        const meta = TrackRegistry.findProblemBySlug(a.slug);
+        const diff: Difficulty = a.difficulty || meta?.difficulty || "Easy";
+        const diffClass = `tag-${diff.toLowerCase()}`;
+
         return `
         <tr>
           <td>#${idx + 1}</td>
@@ -228,7 +232,7 @@ export class LeetFlowConsoleWebview {
               #${a.problemId} ${a.slug}
             </a>
           </td>
-          <td><span class="tag">${a.difficulty || "Medium"}</span></td>
+          <td><span class="tag ${diffClass}">${diff}</span></td>
           <td>${durMin}m <span class="subtext">(${thinkSec}s think)</span></td>
           <td><span class="badge ${frictionClass}">${frictionLabels[a.frictionRating] || "Smooth"}</span></td>
           <td>${a.zeroShot ? "⚡ Zero-Shot" : "Standard"}</td>
@@ -394,6 +398,22 @@ export class LeetFlowConsoleWebview {
       padding: 2px 6px;
       border-radius: 3px;
       font-size: 11px;
+      font-weight: 500;
+    }
+    .tag-easy {
+      background: rgba(126, 231, 135, 0.12);
+      color: #7ee787;
+      border: 1px solid rgba(126, 231, 135, 0.25);
+    }
+    .tag-medium {
+      background: rgba(227, 179, 65, 0.12);
+      color: #e3b341;
+      border: 1px solid rgba(227, 179, 65, 0.25);
+    }
+    .tag-hard {
+      background: rgba(255, 123, 114, 0.12);
+      color: #ff7b72;
+      border: 1px solid rgba(255, 123, 114, 0.25);
     }
     .subtext { font-size: 10px; opacity: 0.6; }
     .problem-link {

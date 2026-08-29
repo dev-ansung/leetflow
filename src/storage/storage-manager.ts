@@ -85,7 +85,16 @@ export class StorageManager {
   }
 
   async getAttempts(): Promise<AttemptLog[]> {
-    return this.adapter.get<AttemptLog[]>("attempts_history", []);
+    const raw = await this.adapter.get<AttemptLog[]>("attempts_history", []);
+    return raw.map((a) => {
+      if (!a.difficulty || a.difficulty === "Medium") {
+        const meta = TrackRegistry.findProblemBySlug(a.slug);
+        if (meta) {
+          a.difficulty = meta.difficulty;
+        }
+      }
+      return a;
+    });
   }
 
   async getUserTrendMetrics(): Promise<UserTrendMetrics> {
@@ -177,8 +186,10 @@ export class StorageManager {
     nextIntervalDays: number;
   }> {
     const currentReadiness = await this.getReadinessPct();
+    const meta = TrackRegistry.findProblemBySlug(params.slug);
     const difficulty: Difficulty =
       params.difficulty ||
+      meta?.difficulty ||
       (params.targetSec > 2000 ? "Hard" : params.targetSec > 1000 ? "Medium" : "Easy");
 
     const { newReadinessPct, deltaPct, grade } = MetricsEngine.calculateReadiness(

@@ -11,18 +11,7 @@
 
 ---
 
-```
-+-----------------------------------------------------------------------------------------+
-| [Practice Tracks]   | solution.py (Clean Modern Python)       | Problem Statement       |
-| ⚡ Next Problem      | class Solution:                         | #1. Two Sum   [Easy]    |
-| 🔀 Grind 75 (12/75) |     def two_sum(                        | ----------------------- |
-| ▶ Week 1            |         self,                           | [▶ Run] [✔ Submit] [↺]  |
-|   ● 1. Two Sum      |         nums: list[int],                | Given an array of ints  |
-|   ● 20. Valid Paren |         target: int,                    | nums and an int target, |
-|   ● 21. Merge Lists |     ) -> list[int]:                     | return indices of the   |
-| ▶ Week 2            |         seen: dict[int, int] = {}       | two numbers that add... |
-+-----------------------------------------------------------------------------------------+
-```
+![LeetFlow Split View Practice Showcase](images/hero_showcase.png)
 
 ---
 
@@ -65,6 +54,8 @@ Grinding coding interviews is full of friction: switching browser tabs, wrestlin
 ### 1. 🔓 Universal Sourcing & Zero Paywall Roadblocks
 Never get stopped mid-roadmap because a crucial interview question is locked behind a paywall.
 
+![LeetFlow Paywall Bypass on Locked Problem](images/paywall_bypass.png)
+
 * **Automatic Fallback Mirroring**: When opening company-tagged or locked questions (e.g. `#269 Alien Dictionary`, `#253 Meeting Rooms II`, `#323 Connected Components`), LeetFlow automatically sources the full problem statement, function signatures, and sample test cases.
 * **Open Anything**: Open any problem by numeric ID (`#1`, `#242`, `#269`), slug (`valid-anagram`), or full URL (`leetcode.com` / `leetcode.cn`).
 
@@ -103,6 +94,8 @@ Work through industry-standard interview preparation roadmaps with a single clic
 ### 4. 🕸 Dynamic Top 6 Topics Performance Radar & Telemetry
 Open the **Dashboard** (`Cmd+Shift+P` -> `LeetFlow: Open Dashboard`) to view:
 
+![LeetFlow Dashboard & Radar Telemetry](images/dashboard_telemetry.png)
+
 * **Dynamic Top 6 Topics Radar Chart**: Visualizes your algorithmic strengths and coverage balance across your most practiced LeetCode topic tags (Array, Two Pointers, Dynamic Programming, Binary Tree, Graph, Greedy, etc.).
 * **Unified Interview Readiness (0 - 100%) & Grade (S / A / B / C / D / Novice)**: Objective calibration of interview readiness based on problem difficulty, solve speed, zero-shot rate, and cognitive recall friction.
 * **SuperMemo-2 (SM-2) Spaced Repetition**: Automatically prioritizes due reviews so you never forget a pattern before interview day.
@@ -111,7 +104,11 @@ Open the **Dashboard** (`Cmd+Shift+P` -> `LeetFlow: Open Dashboard`) to view:
 
 ---
 
-### 5. ↺ Reset Solution & Zero-Friction Controls
+### 5. 📜 Attempt History & Data Management
+Track your chronological progress and maintain complete local data sovereignty:
+
+![LeetFlow Attempt History Ledger](images/attempt_history.png)
+
 * **Reset Current Solution (`$(discard)`)**: Cleanly reset your active problem back to its initial modern starter template with one click.
 * **Status Bar Stopwatch**: Track active solving time with click-to-pause functionality.
 * **Data Sovereignty**: Export your entire history to a JSON backup, restore anytime, or purge cached scratch files.

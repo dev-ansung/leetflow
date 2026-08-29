@@ -92,4 +92,8 @@ export class TrackRegistry {
     }
     return all.find((p) => p.slug === String(slugOrId));
   }
+
+  static findProblemBySlug(slug: string): TrackProblem | undefined {
+    return TrackRegistry.findProblem(slug);
+  }
 }
