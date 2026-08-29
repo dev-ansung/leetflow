@@ -1,10 +1,7 @@
-import * as cp from "node:child_process";
-import * as fs from "node:fs";
-import * as path from "node:path";
 import type { TestCase, TestResult } from "../types";
-import type { CodeRunner } from "./runner-interface";
+import { BaseSubprocessRunner } from "./base-runner";
 
-export class PythonRunner implements CodeRunner {
+export class PythonRunner extends BaseSubprocessRunner {
   readonly language = "python";
   readonly fileExtension = ".py";
 
@@ -18,17 +15,17 @@ export class PythonRunner implements CodeRunner {
     return runner.runTests(solutionPath, functionName, testCases, timeoutMs);
   }
 
-  async runTests(
+  protected getCommand(harnessPath: string): { binary: string; args: string[] } {
+    return { binary: "python3", args: [harnessPath] };
+  }
+
+  protected generateHarness(
     solutionPath: string,
     functionName: string,
     testCases: TestCase[],
-    timeoutMs: number = 4000,
-  ): Promise<TestResult> {
-    const dir = path.dirname(solutionPath);
-    const harnessPath = path.join(dir, "__harness__.py");
-
+  ): string {
     const casesJson = JSON.stringify(testCases);
-    const harnessScript = `
+    return `
 import sys
 import json
 import time
@@ -131,100 +128,5 @@ def run_all():
 if __name__ == "__main__":
     run_all()
 `;
-
-    fs.writeFileSync(harnessPath, harnessScript, "utf-8");
-
-    return new Promise((resolve) => {
-      let isTimedOut = false;
-      const child = cp.spawn("python3", [harnessPath], {
-        cwd: dir,
-        env: { ...process.env, PYTHONUNBUFFERED: "1" },
-      });
-
-      let stdout = "";
-      let stderr = "";
-
-      child.stdout.on("data", (d) => {
-        stdout += d.toString();
-      });
-
-      child.stderr.on("data", (d) => {
-        stderr += d.toString();
-      });
-
-      const timer = setTimeout(() => {
-        isTimedOut = true;
-        child.kill("SIGKILL");
-        this.cleanup(harnessPath);
-        resolve({
-          allPassed: false,
-          passedCount: 0,
-          totalCount: testCases.length,
-          totalDurationMs: timeoutMs,
-          caseResults: testCases.map((c) => ({
-            id: c.id,
-            input: c.input,
-            expected: c.expected,
-            actual: null,
-            passed: false,
-            durationMs: timeoutMs,
-            error: "Time Limit Exceeded (Timeout)",
-          })),
-          error: `Execution timed out after ${timeoutMs}ms (Possible Infinite Loop)`,
-        });
-      }, timeoutMs);
-
-      child.on("close", (code) => {
-        clearTimeout(timer);
-        this.cleanup(harnessPath);
-
-        if (isTimedOut) return;
-
-        if (stderr && !stdout) {
-          resolve({
-            allPassed: false,
-            passedCount: 0,
-            totalCount: testCases.length,
-            totalDurationMs: 0,
-            caseResults: [],
-            error: stderr.trim(),
-          });
-          return;
-        }
-
-        try {
-          const parsed = JSON.parse(stdout.trim());
-          if (parsed.error) {
-            resolve({
-              allPassed: false,
-              passedCount: 0,
-              totalCount: testCases.length,
-              totalDurationMs: 0,
-              caseResults: [],
-              error: parsed.error,
-            });
-          } else {
-            resolve(parsed);
-          }
-        } catch {
-          resolve({
-            allPassed: false,
-            passedCount: 0,
-            totalCount: testCases.length,
-            totalDurationMs: 0,
-            caseResults: [],
-            error: stdout || stderr || `Process exited with code ${code}`,
-          });
-        }
-      });
-    });
-  }
-
-  private cleanup(filePath: string) {
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch {}
   }
 }
