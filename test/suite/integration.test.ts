@@ -76,16 +76,24 @@ class Solution:
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("4. Metrics: should calculate Elo rating adjustments", () => {
-    // Fast solve of Easy problem (target 900s, solved in 300s)
-    const { newElo, delta } = MetricsEngine.calculateElo(1400, 1200, 300, 900, true);
-    expect(delta).toBeGreaterThan(0);
-    expect(newElo).toBeGreaterThan(1400);
+  it("4. Metrics: should calculate readiness percentage adjustments", () => {
+    // Fast solve of Easy problem
+    const { newReadinessPct, deltaPct, grade } = MetricsEngine.calculateReadiness(
+      50,
+      "Easy",
+      2,
+      300,
+      900,
+      true,
+    );
+    expect(deltaPct).toBeGreaterThan(0);
+    expect(newReadinessPct).toBeGreaterThan(50);
+    expect(grade).toBeDefined();
 
     // Failed solve
-    const failRes = MetricsEngine.calculateElo(1400, 1200, 900, 900, false);
-    expect(failRes.delta).toBeLessThan(0);
-    expect(failRes.newElo).toBeLessThan(1400);
+    const failRes = MetricsEngine.calculateReadiness(50, "Easy", 2, 900, 900, false);
+    expect(failRes.deltaPct).toBeLessThan(0);
+    expect(failRes.newReadinessPct).toBeLessThan(50);
   });
 
   it("5. Metrics: should calculate SM-2 spaced repetition intervals", () => {

@@ -2,8 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { MetricsEngine } from "../core/metrics";
-import { CURRICULUM_DATASET } from "../data/curriculum";
-import { TopicNormalizer } from "../data/topic-normalizer";
+import { TrackRegistry } from "../data/track-registry";
 import type { Difficulty, GradeTier, UserTrendMetrics } from "../types";
 
 export interface StorageAdapter {
@@ -32,7 +31,7 @@ export interface AttemptLog {
   id: string;
   problemId: number;
   slug: string;
-  topic: string;
+  difficulty?: Difficulty;
   timestamp: string;
   durationSec: number;
   targetSec: number;
@@ -42,70 +41,47 @@ export interface AttemptLog {
   frictionRating: 1 | 2 | 3 | 4;
 }
 
-export interface TopicMasteryState {
-  topic: string;
-  masteryPct: number; // 0 - 100
-  grade: GradeTier;
-  solvedCount: number;
+export interface ProblemReviewState {
+  slug: string;
   lastPracticedAt: string;
   reviewIntervalDays: number;
   nextReviewDue: string;
   repetitionLevel: number;
-  elo: number;
 }
 
 export interface BackupData {
   version: string;
   exportedAt: string;
+  readinessPct: number;
   attempts: AttemptLog[];
-  mastery: Record<string, TopicMasteryState>;
+  reviews: Record<string, ProblemReviewState>;
 }
 
 export class StorageManager {
   constructor(private adapter: StorageAdapter) {}
 
-  async getTopicMastery(topic: string): Promise<TopicMasteryState> {
-    const canonicalTopic = TopicNormalizer.normalize("", [topic]);
-    const key = `mastery_${canonicalTopic}`;
+  async getReadinessPct(): Promise<number> {
+    return this.adapter.get<number>("global_readiness_pct", 0);
+  }
 
-    const raw = await this.adapter.get<any>(key, {
-      topic: canonicalTopic,
-      masteryPct: 0,
-      grade: "Novice",
-      elo: 1200,
-      solvedCount: 0,
+  async setReadinessPct(pct: number): Promise<void> {
+    await this.adapter.update("global_readiness_pct", Math.min(100, Math.max(0, pct)));
+  }
+
+  async getProblemReview(slug: string): Promise<ProblemReviewState> {
+    const key = `review_${slug}`;
+    return this.adapter.get<ProblemReviewState>(key, {
+      slug,
       lastPracticedAt: "",
       reviewIntervalDays: 0,
       nextReviewDue: "",
       repetitionLevel: 0,
     });
-
-    // Auto-migrate legacy Elo if masteryPct not explicitly stored
-    if (typeof raw.masteryPct !== "number") {
-      const legacyElo = typeof raw.elo === "number" ? raw.elo : 1200;
-      raw.masteryPct = Math.min(100, Math.max(0, Math.round(((legacyElo - 1000) / 1000) * 100)));
-    }
-    raw.grade = MetricsEngine.getGradeTier(raw.masteryPct);
-    raw.elo = typeof raw.elo === "number" ? raw.elo : 1000 + Math.round(raw.masteryPct * 10);
-
-    return raw as TopicMasteryState;
   }
 
-  async saveTopicMastery(mastery: TopicMasteryState): Promise<void> {
-    const canonicalTopic = TopicNormalizer.normalize("", [mastery.topic]);
-    mastery.topic = canonicalTopic;
-    mastery.grade = MetricsEngine.getGradeTier(mastery.masteryPct);
-    const key = `mastery_${canonicalTopic}`;
-    await this.adapter.update(key, mastery);
-  }
-
-  async getAllMasteries(): Promise<TopicMasteryState[]> {
-    const topics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
-    const list: TopicMasteryState[] = [];
-    for (const t of topics) {
-      list.push(await this.getTopicMastery(t));
-    }
-    return list;
+  async saveProblemReview(review: ProblemReviewState): Promise<void> {
+    const key = `review_${review.slug}`;
+    await this.adapter.update(key, review);
   }
 
   async getAttempts(): Promise<AttemptLog[]> {
@@ -114,8 +90,8 @@ export class StorageManager {
 
   async getUserTrendMetrics(): Promise<UserTrendMetrics> {
     const attempts = await this.getAttempts();
-    const masteries = await this.getAllMasteries();
-    const { overallMasteryPct, overallGrade } = MetricsEngine.calculateOverallGrade(masteries);
+    const readinessPct = await this.getReadinessPct();
+    const grade = MetricsEngine.getGradeTier(readinessPct);
 
     const now = Date.now();
     const sevenDaysAgo = now - 7 * 24 * 3600 * 1000;
@@ -127,6 +103,11 @@ export class StorageManager {
     let totalDurationSec = 0;
 
     const solveDays = new Set<string>();
+    const passedUniqueSlugs = new Set<string>();
+
+    let easySolved = 0;
+    let mediumSolved = 0;
+    let hardSolved = 0;
 
     for (const a of attempts) {
       const ts = new Date(a.timestamp).getTime();
@@ -136,6 +117,15 @@ export class StorageManager {
         if (ts >= thirtyDaysAgo) solvedLast30Days++;
         if (a.frictionRating === 1 || a.frictionRating === 2) smoothCount++;
         totalDurationSec += a.durationSec;
+
+        if (!passedUniqueSlugs.has(a.slug)) {
+          passedUniqueSlugs.add(a.slug);
+          const meta = TrackRegistry.findProblem(a.slug);
+          const diff = a.difficulty || meta?.difficulty || "Medium";
+          if (diff === "Easy") easySolved++;
+          else if (diff === "Medium") mediumSolved++;
+          else if (diff === "Hard") hardSolved++;
+        }
       }
     }
 
@@ -158,20 +148,22 @@ export class StorageManager {
     }
 
     return {
-      overallGrade,
-      overallMasteryPct,
+      grade,
+      readinessPct,
       streakDays,
       solvedLast7Days,
       solvedLast30Days,
       smoothRatePct,
       averageDurationMinutes,
+      easySolved,
+      mediumSolved,
+      hardSolved,
     };
   }
 
   async recordAttempt(params: {
     problemId: number;
     slug: string;
-    topic: string;
     difficulty?: Difficulty;
     durationSec: number;
     targetSec: number;
@@ -179,23 +171,18 @@ export class StorageManager {
     passed: boolean;
     frictionRating: 1 | 2 | 3 | 4;
   }): Promise<{
-    newMasteryPct: number;
+    newReadinessPct: number;
     deltaPct: number;
     grade: GradeTier;
-    overallGrade: GradeTier;
-    overallMasteryPct: number;
-    newElo: number;
-    delta: number;
     nextIntervalDays: number;
   }> {
-    const canonicalTopic = TopicNormalizer.normalize(params.slug, [params.topic]);
-    const mastery = await this.getTopicMastery(canonicalTopic);
+    const currentReadiness = await this.getReadinessPct();
     const difficulty: Difficulty =
       params.difficulty ||
       (params.targetSec > 2000 ? "Hard" : params.targetSec > 1000 ? "Medium" : "Easy");
 
-    const { newMasteryPct, deltaPct, grade } = MetricsEngine.calculateMastery(
-      mastery.masteryPct,
+    const { newReadinessPct, deltaPct, grade } = MetricsEngine.calculateReadiness(
+      currentReadiness,
       difficulty,
       params.frictionRating,
       params.durationSec,
@@ -203,40 +190,31 @@ export class StorageManager {
       params.passed,
     );
 
-    const { newElo, delta } = MetricsEngine.calculateElo(
-      mastery.elo,
-      params.targetSec > 2000 ? 1900 : params.targetSec > 1000 ? 1600 : 1200,
-      params.durationSec,
-      params.targetSec,
-      params.passed,
-    );
+    await this.setReadinessPct(newReadinessPct);
 
+    const review = await this.getProblemReview(params.slug);
     const { nextIntervalDays, newRepetition } = MetricsEngine.calculateSM2(
       params.frictionRating,
-      mastery.repetitionLevel,
-      mastery.reviewIntervalDays,
+      review.repetitionLevel,
+      review.reviewIntervalDays,
     );
 
     const now = new Date();
     const nextDueDate = new Date(now.getTime() + nextIntervalDays * 24 * 3600 * 1000);
 
-    mastery.masteryPct = newMasteryPct;
-    mastery.grade = grade;
-    mastery.elo = newElo;
-    mastery.solvedCount += params.passed ? 1 : 0;
-    mastery.lastPracticedAt = now.toISOString();
-    mastery.reviewIntervalDays = nextIntervalDays;
-    mastery.nextReviewDue = nextDueDate.toISOString();
-    mastery.repetitionLevel = newRepetition;
+    review.lastPracticedAt = now.toISOString();
+    review.reviewIntervalDays = nextIntervalDays;
+    review.nextReviewDue = nextDueDate.toISOString();
+    review.repetitionLevel = newRepetition;
 
-    await this.saveTopicMastery(mastery);
+    await this.saveProblemReview(review);
 
     const attempts = await this.getAttempts();
     const log: AttemptLog = {
       id: String(Date.now()),
       problemId: params.problemId,
       slug: params.slug,
-      topic: canonicalTopic,
+      difficulty,
       timestamp: now.toISOString(),
       durationSec: params.durationSec,
       targetSec: params.targetSec,
@@ -248,16 +226,10 @@ export class StorageManager {
     attempts.push(log);
     await this.adapter.update("attempts_history", attempts);
 
-    const trend = await this.getUserTrendMetrics();
-
     return {
-      newMasteryPct,
+      newReadinessPct,
       deltaPct,
       grade,
-      overallGrade: trend.overallGrade,
-      overallMasteryPct: trend.overallMasteryPct,
-      newElo,
-      delta,
       nextIntervalDays,
     };
   }
@@ -275,23 +247,26 @@ export class StorageManager {
       await this.adapter.clear();
     } else {
       await this.adapter.update("attempts_history", []);
+      await this.adapter.update("global_readiness_pct", 0);
     }
   }
 
   async exportAllData(): Promise<string> {
     const attempts = await this.getAttempts();
-    const topics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
-    const masteryMap: Record<string, TopicMasteryState> = {};
+    const readinessPct = await this.getReadinessPct();
+    const uniqueSlugs = Array.from(new Set(attempts.map((a) => a.slug)));
+    const reviewMap: Record<string, ProblemReviewState> = {};
 
-    for (const t of topics) {
-      masteryMap[t] = await this.getTopicMastery(t);
+    for (const s of uniqueSlugs) {
+      reviewMap[s] = await this.getProblemReview(s);
     }
 
     const backup: BackupData = {
-      version: "2.0.0",
+      version: "3.0.0",
       exportedAt: new Date().toISOString(),
+      readinessPct,
       attempts,
-      mastery: masteryMap,
+      reviews: reviewMap,
     };
 
     return JSON.stringify(backup, null, 2);
@@ -305,10 +280,13 @@ export class StorageManager {
       }
 
       await this.adapter.update("attempts_history", parsed.attempts);
+      if (typeof parsed.readinessPct === "number") {
+        await this.setReadinessPct(parsed.readinessPct);
+      }
 
-      if (parsed.mastery && typeof parsed.mastery === "object") {
-        for (const [_t, m] of Object.entries(parsed.mastery)) {
-          await this.saveTopicMastery(m);
+      if (parsed.reviews && typeof parsed.reviews === "object") {
+        for (const [_s, r] of Object.entries(parsed.reviews)) {
+          await this.saveProblemReview(r);
         }
       }
 

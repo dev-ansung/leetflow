@@ -3,7 +3,7 @@ import type { StorageManager } from "../storage/storage-manager";
 
 export interface RecommendationResult {
   problem: TrackProblem;
-  reason: "due_review" | "mastery_match" | "curriculum_progression";
+  reason: "due_review" | "readiness_match" | "curriculum_progression";
   confidenceScore: number;
 }
 
@@ -17,13 +17,13 @@ export class RecommendationEngine {
     const passedSlugs = new Set(attempts.filter((a) => a.passed).map((a) => a.slug));
     const now = Date.now();
 
-    // 1. Check for Due Reviews (Spaced Repetition SM-2 priority)
+    // 1. Check for Due Problem Reviews (Spaced Repetition SM-2 priority)
     const dueProblems: { problem: TrackProblem; daysOverdue: number }[] = [];
     for (const p of problems) {
       if (passedSlugs.has(p.slug)) {
-        const mastery = await this.storage.getTopicMastery(p.topic);
-        if (mastery.nextReviewDue) {
-          const dueDate = new Date(mastery.nextReviewDue).getTime();
+        const review = await this.storage.getProblemReview(p.slug);
+        if (review.nextReviewDue) {
+          const dueDate = new Date(review.nextReviewDue).getTime();
           if (dueDate <= now) {
             dueProblems.push({
               problem: p,
@@ -39,26 +39,17 @@ export class RecommendationEngine {
       return dueProblems[0].problem;
     }
 
-    // 2. Recommend Unsolved Problems Matching Mastery Zone of Proximal Development
+    // 2. Recommend Unsolved Problems Matching Readiness Zone in Chronological Order
     const unsolved = problems.filter((p) => !passedSlugs.has(p.slug));
     if (unsolved.length > 0) {
-      const topicMasteries: Record<string, number> = {};
-      for (const p of unsolved) {
-        if (topicMasteries[p.topic] === undefined) {
-          const m = await this.storage.getTopicMastery(p.topic);
-          topicMasteries[p.topic] = m.masteryPct ?? 0;
-        }
-      }
+      const readiness = await this.storage.getReadinessPct();
 
       unsolved.sort((a, b) => {
-        const masteryA = topicMasteries[a.topic] || 0;
-        const masteryB = topicMasteries[b.topic] || 0;
+        const targetReadinessA = a.difficulty === "Easy" ? 20 : a.difficulty === "Medium" ? 55 : 85;
+        const targetReadinessB = b.difficulty === "Easy" ? 20 : b.difficulty === "Medium" ? 55 : 85;
 
-        const targetMasteryA = a.difficulty === "Easy" ? 20 : a.difficulty === "Medium" ? 55 : 85;
-        const targetMasteryB = b.difficulty === "Easy" ? 20 : b.difficulty === "Medium" ? 55 : 85;
-
-        const diffA = Math.abs(masteryA - targetMasteryA);
-        const diffB = Math.abs(masteryB - targetMasteryB);
+        const diffA = Math.abs(readiness - targetReadinessA);
+        const diffB = Math.abs(readiness - targetReadinessB);
 
         if (diffA !== diffB) {
           return diffA - diffB;

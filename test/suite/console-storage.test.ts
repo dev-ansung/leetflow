@@ -10,7 +10,7 @@ describe("Console Dashboard & Data Management Suite", () => {
     await storage.recordAttempt({
       problemId: 1,
       slug: "two-sum",
-      topic: "Array & Hashing",
+      difficulty: "Easy",
       durationSec: 120,
       targetSec: 900,
       thinkingSec: 30,
@@ -21,25 +21,23 @@ describe("Console Dashboard & Data Management Suite", () => {
     const exportJson = await storage.exportAllData();
     const parsed = JSON.parse(exportJson);
 
-    expect(parsed.version).toBe("2.0.0");
+    expect(parsed.version).toBe("3.0.0");
     expect(parsed.attempts.length).toBe(1);
     expect(parsed.attempts[0].slug).toBe("two-sum");
-    expect(parsed.mastery["Array & Hashing"]).toBeDefined();
+    expect(parsed.reviews["two-sum"]).toBeDefined();
 
     // Now wipe storage
     await storage.resetAll();
-    const wipedSummary = await StatsCalculator.computeSummary(storage);
-    expect(wipedSummary.totalSolved).toBe(0);
+    const wipedAttempts = await storage.getAttempts();
+    expect(wipedAttempts.length).toBe(0);
 
-    // Now restore from backup
-    const importSuccess = await storage.importData(exportJson);
-    expect(importSuccess).toBe(true);
+    // Import back
+    const success = await storage.importData(exportJson);
+    expect(success).toBe(true);
 
-    const restoredSummary = await StatsCalculator.computeSummary(storage);
-    expect(restoredSummary.totalSolved).toBe(1);
-    expect(
-      restoredSummary.topicMasteries.find((m) => m.topic === "Array & Hashing")?.solvedCount,
-    ).toBe(1);
+    const restoredAttempts = await storage.getAttempts();
+    expect(restoredAttempts.length).toBe(1);
+    expect(restoredAttempts[0].slug).toBe("two-sum");
   });
 
   it("should compute rich stats breakdown including friction distribution and attempt ledger", async () => {
@@ -49,30 +47,35 @@ describe("Console Dashboard & Data Management Suite", () => {
     await storage.recordAttempt({
       problemId: 1,
       slug: "two-sum",
-      topic: "Array & Hashing",
-      durationSec: 100,
-      targetSec: 900,
-      thinkingSec: 20,
-      passed: true,
-      frictionRating: 1,
-    });
-
-    await storage.recordAttempt({
-      problemId: 217,
-      slug: "contains-duplicate",
-      topic: "Array & Hashing",
-      durationSec: 150,
+      difficulty: "Easy",
+      durationSec: 180,
       targetSec: 900,
       thinkingSec: 40,
       passed: true,
-      frictionRating: 3,
+      frictionRating: 1, // Trivial
+    });
+
+    await storage.recordAttempt({
+      problemId: 15,
+      slug: "3sum",
+      difficulty: "Medium",
+      durationSec: 600,
+      targetSec: 1500,
+      thinkingSec: 120,
+      passed: true,
+      frictionRating: 3, // Struggled
     });
 
     const summary = await StatsCalculator.computeSummary(storage);
+
     expect(summary.totalSolved).toBe(2);
     expect(summary.frictionBreakdown.trivial).toBe(1);
     expect(summary.frictionBreakdown.struggled).toBe(1);
     expect(summary.frictionBreakdown.smooth).toBe(0);
+    expect(summary.trend.streakDays).toBe(1);
+    expect(summary.trend.easySolved).toBe(1);
+    expect(summary.trend.mediumSolved).toBe(1);
     expect(summary.attempts.length).toBe(2);
+    expect(summary.attempts[0].slug).toBe("3sum"); // Reverse chronological
   });
 });

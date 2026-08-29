@@ -4,7 +4,6 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { RecommendationEngine } from "./core/recommender";
 import { SessionManager } from "./core/session-manager";
-import { TopicNormalizer } from "./data/topic-normalizer";
 import { TrackRegistry } from "./data/track-registry";
 import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
@@ -149,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const { durationSec, durationMin, thinkingSec } = session.getMetrics();
 
-    const frictionChoice = await vscode.window.showQuickPick(
+    const _frictionChoice = await vscode.window.showQuickPick(
       [
         { label: "1 - Trivial", description: "Solved effortlessly on autopilot", value: 1 },
         { label: "2 - Smooth", description: "Solved with solid understanding", value: 2 },
@@ -170,21 +169,16 @@ export function activate(context: vscode.ExtensionContext) {
       },
     );
 
-    const ratingVal = (frictionChoice?.value || 2) as 1 | 2 | 3 | 4;
-    const topic = TopicNormalizer.normalize(problem.slug, problem.topics);
-
-    const { newMasteryPct, deltaPct, grade, overallGrade, overallMasteryPct, nextIntervalDays } =
-      await storage.recordAttempt({
-        problemId: problem.id,
-        slug: problem.slug,
-        topic,
-        difficulty: problem.difficulty,
-        durationSec,
-        targetSec: problem.targetTimeSeconds,
-        thinkingSec,
-        passed: true,
-        frictionRating: ratingVal,
-      });
+    const { newReadinessPct, deltaPct, grade, nextIntervalDays } = await storage.recordAttempt({
+      problemId: problem.id,
+      slug: problem.slug,
+      difficulty: problem.difficulty,
+      durationSec,
+      targetSec: problem.targetTimeSeconds,
+      thinkingSec,
+      passed: true,
+      frictionRating: ratingVal,
+    });
 
     stopTimer();
     session.clear();
@@ -192,7 +186,7 @@ export function activate(context: vscode.ExtensionContext) {
     statsTreeProvider.refresh();
 
     vscode.window.showInformationMessage(
-      `🎉 Solved in ${durationMin}m! ${topic}: ${newMasteryPct}% [${grade}] (${deltaPct >= 0 ? "+" : ""}${deltaPct}%) · Overall: ${overallMasteryPct}% [${overallGrade}]. Next review in ${nextIntervalDays}d.`,
+      `🎉 Solved in ${durationMin}m! Readiness: ${newReadinessPct}% [Grade ${grade}] (${deltaPct >= 0 ? "+" : ""}${deltaPct}%). Next review in ${nextIntervalDays}d.`,
     );
   });
 

@@ -1,50 +1,48 @@
 # 📊 LeetFlow Proficiency & Grading Specification
 
-This document defines the mathematical models, grading scales, cognitive friction taxonomy, and spaced repetition decay algorithms used across **LeetFlow** to compute **0-100% Topic Mastery**, **Overall Letter Grades (S/A/B/C/D)**, and **Interview Readiness Telemetry**.
+This document defines the mathematical model, grading scales, cognitive friction taxonomy, and spaced repetition decay algorithms used across **LeetFlow** to compute your **Unified Interview Readiness Score (0-100%)**, **Overall Letter Grade (S / A / B / C / D / Novice)**, and **Performance Telemetry**.
 
 ---
 
-## 1. Overall Performance Grade Scale
+## 1. Unified Interview Readiness Scale
 
-LeetFlow assigns an aggregate **Overall Grade** reflecting your holistic interview readiness across all standard coding interview patterns:
+In algorithmic interview preparation, topic silos (e.g. *Two Pointers* vs *Sliding Window* vs *Greedy*) are often artificial and porous. LeetFlow tracks a **single, continuous Global Readiness Score (0 - 100%)** that calibrates your overall interview preparedness:
 
-$$\text{Overall Mastery \%} = \frac{\sum_{i=1}^{N} \text{Topic Mastery}_i}{N}$$
-
-| Overall Mastery % | Grade Tier | Badge | Interview Readiness Designation | Practical Capability |
+| Readiness % | Grade Tier | Badge | Interview Readiness State | Practical Capability |
 |:---:|:---:|:---:|---|---|
 | **90% - 100%** | **S Grade** | 🏆 `S` | **Senior / FAANG Ready** | Solves unseen Mediums in <15m, comfortable with Hard variations, zero hint reliance. |
-| **80% - 89%** | **A Grade** | 🟢 `A` | **Strong Hire Candidate** | Solves 90%+ of interview Mediums smoothly within target time, solid intuition across all topics. |
-| **65% - 79%** | **B Grade** | 🟡 `B` | **Solid Intermediate** | Understands core patterns (Sliding Window, Two Pointers, Trees, Basic DP), occasionally needs hints on complex graph/hard DP problems. |
-| **50% - 64%** | **C Grade** | 🟠 `C` | **Foundations Established** | Comfortable with Easy problems, working on transitioning to Medium patterns. |
-| **35% - 49%** | **D Grade** | 🔴 `D` | **Early Learning Stage** | Developing basic data structure syntax and initial pattern recognition. |
+| **80% - 89%** | **A Grade** | 🟢 `A` | **Strong Hire Candidate** | Solves 90%+ of interview Mediums smoothly within target time, solid intuition across all patterns. |
+| **65% - 79%** | **B Grade** | 🟡 `B` | **Solid Intermediate** | Understands core patterns, occasionally needs hints on complex graph/hard DP problems. |
+| **50% - 64%** | **C Grade** | 🟠 `C` | **Foundations Established** | Comfortable with Easy problems, working on scaling to Medium patterns. |
+| **35% - 49%** | **D Grade** | 🔴 `D` | **Early Learning Stage** | Developing syntax fluency and initial algorithmic pattern recognition. |
 | **< 35%** | **Novice** | ⚪ `Novice` | **Just Starting Out** | Unranked baseline. Begins interview preparation. |
 
 ---
 
-## 2. Topic Mastery Calculation Formula (0 - 100%)
+## 2. Global Readiness Calculation Formula
 
-Every topic (e.g. *Dynamic Programming*, *Trees*, *Graphs*, *Binary Search*) starts at **0%**. Solving a problem increases that topic's mastery based on difficulty, solve speed, and self-reported cognitive friction.
+Every engineer begins at **0% (Novice)**. Each problem you solve adds directly to your global readiness based on difficulty, solve speed, and self-reported cognitive friction:
 
-### The Mastery Equation
-$$\Delta \text{Mastery} = \max\left(1, \text{round}\left(B_{\text{diff}} \times M_{\text{friction}} \times S_{\text{speed}} \times H_{\text{headroom}}\right)\right)$$
+### The Readiness Equation
+$$\Delta \text{Readiness} = \max\left(1, \text{round}\left(B_{\text{diff}} \times M_{\text{friction}} \times S_{\text{speed}} \times H_{\text{headroom}}\right)\right)$$
 
-$$\text{New Mastery} = \min\left(100, \max\left(0, \text{Current Mastery} + \Delta \text{Mastery}\right)\right)$$
+$$\text{New Readiness} = \min\left(100, \max\left(0, \text{Current Readiness} + \Delta \text{Readiness}\right)\right)$$
 
 ---
 
 ### Component Breakdown:
 
 #### 1. Base Difficulty Credit ($B_{\text{diff}}$)
-* **Easy**: $+6\%$ base credit
-* **Medium**: $+10\%$ base credit
-* **Hard**: $+16\%$ base credit
+* **Easy**: $+4\%$ base credit
+* **Medium**: $+8\%$ base credit
+* **Hard**: $+14\%$ base credit
 
 #### 2. Cognitive Friction Multiplier ($M_{\text{friction}}$)
 After each successful test run, LeetFlow prompts you for your cognitive friction rating:
 
 | Rating | Tier Label | Multiplier | Meaning |
 |:---:|:---:|:---:|---|
-| **1** | **Trivial** | **$1.25\times$** | Instant autopilot recall. Solution formulated with zero hesitation. |
+| **1** | **Trivial** | **$1.25\times$** | Instant autopilot recall. Formulated and implemented solution effortlessly. |
 | **2** | **Smooth** | **$1.00\times$** | Natural problem-solving flow. Solid intuition with standard debugging. |
 | **3** | **Struggled** | **$0.50\times$** | Extensive trial-and-error, corner-case bugs, or major friction. |
 | **4** | **Looked at Solution** | **$0.15\times$** | Needed hints or full solution lookup. Minimal exposure credit awarded. |
@@ -56,7 +54,7 @@ $$\text{Ratio} = \frac{T_{\text{target}}}{\max(T_{\text{duration}}, 60)}$$
 
 #### 4. Diminishing Returns Headroom ($H_{\text{headroom}}$)
 To ensure reaching 90%+ requires comprehensive pattern mastery rather than grinding Easy questions:
-$$H_{\text{headroom}} = \max\left(0.20, \frac{100 - \text{Current Mastery}}{100}\right)$$
+$$H_{\text{headroom}} = \max\left(0.15, \frac{100 - \text{Current Readiness}}{100}\right)$$
 
 ---
 
@@ -96,17 +94,5 @@ LeetFlow aggregates real-time metrics in your **Proficiency & Telemetry Sidebar*
 $$\text{Flow Rate} = \frac{\text{Solves with Friction 1 or 2}}{\text{Total Solved}} \times 100$$
 A rising Flow Rate indicates transitioning from pattern memorization to fluid intuition.
 
-### 3. Zero-Shot Pass Rate
-$$\text{Zero-Shot Rate} = \frac{\text{Solves passing all test cases on first run}}{\text{Total Solved}} \times 100$$
-Demonstrates algorithmic precision and attention to edge cases before executing code.
-
----
-
-## 5. Optimal Practice Strategy: Reaching S-Tier
-
-1. **Prioritize Due Reviews**: When **`⚡ Next Recommended Problem`** suggests an overdue problem, review it immediately. Reviewing restores memory retention and prevents forgetting curve decay.
-2. **Target Zone of Proximal Development**:
-   * Grade **Novice / D** ($<50\%$): Practice Easy foundation problems.
-   * Grade **C / B** ($50\% - 79\%$): Practice Medium core pattern problems.
-   * Grade **A / S** ($80\% - 100\%$): Practice Hard problem variations and timed mock simulations.
-3. **Be Honest on Friction Ratings**: Logging *Struggled* or *Looked at Solution* correctly triggers a 1-day spaced review so you re-encounter the pattern before you forget it!\n
+### 3. Difficulty Distribution & Balance
+Tracks your solved balance across **Easy**, **Medium**, and **Hard** tiers to ensure you are scaling up to standard interview difficulty.\n

@@ -1,44 +1,43 @@
-import type { Difficulty, GradeTier, TopicMastery } from "../types";
+import type { Difficulty, GradeTier } from "../types";
 
 export class MetricsEngine {
   /**
-   * Returns letter grade tier based on mastery percentage (0 - 100%).
+   * Returns letter grade tier based on readiness percentage (0 - 100%).
    */
-  static getGradeTier(masteryPct: number): GradeTier {
-    if (masteryPct >= 90) return "S";
-    if (masteryPct >= 80) return "A";
-    if (masteryPct >= 65) return "B";
-    if (masteryPct >= 50) return "C";
-    if (masteryPct >= 35) return "D";
+  static getGradeTier(readinessPct: number): GradeTier {
+    if (readinessPct >= 90) return "S";
+    if (readinessPct >= 80) return "A";
+    if (readinessPct >= 65) return "B";
+    if (readinessPct >= 50) return "C";
+    if (readinessPct >= 35) return "D";
     return "Novice";
   }
 
   /**
-   * Calculates new 0-100% mastery percentage after an attempt.
+   * Calculates new global 0-100% interview readiness percentage after an attempt.
    */
-  static calculateMastery(
-    currentMasteryPct: number,
+  static calculateReadiness(
+    currentReadinessPct: number,
     difficulty: Difficulty,
     rating: 1 | 2 | 3 | 4,
     durationSec: number,
     targetSec: number,
     passed: boolean,
-  ): { newMasteryPct: number; deltaPct: number; grade: GradeTier } {
+  ): { newReadinessPct: number; deltaPct: number; grade: GradeTier } {
     if (!passed) {
       const deltaPct = -2;
-      const newMasteryPct = Math.max(0, currentMasteryPct + deltaPct);
+      const newReadinessPct = Math.max(0, currentReadinessPct + deltaPct);
       return {
-        newMasteryPct,
+        newReadinessPct,
         deltaPct,
-        grade: MetricsEngine.getGradeTier(newMasteryPct),
+        grade: MetricsEngine.getGradeTier(newReadinessPct),
       };
     }
 
     // 1. Base credit by problem difficulty
-    const baseCredit = difficulty === "Easy" ? 6 : difficulty === "Medium" ? 10 : 16;
+    const baseCredit = difficulty === "Easy" ? 4 : difficulty === "Medium" ? 8 : 14;
 
     // 2. Friction multiplier
-    // 1: Trivial (1.2x), 2: Smooth (1.0x), 3: Struggled (0.5x), 4: Looked at solution (+1% flat)
     let frictionMultiplier = 1.0;
     if (rating === 1) frictionMultiplier = 1.25;
     else if (rating === 2) frictionMultiplier = 1.0;
@@ -50,64 +49,17 @@ export class MetricsEngine {
     const speedBonus =
       speedRatio >= 1.0 ? Math.min(1.15, 0.95 + speedRatio * 0.05) : Math.max(0.8, speedRatio);
 
-    // 4. Diminishing returns curve as mastery approaches 100%
-    const headroomFactor = Math.max(0.2, (100 - currentMasteryPct) / 100);
+    // 4. Diminishing returns curve as readiness approaches 100%
+    const headroomFactor = Math.max(0.15, (100 - currentReadinessPct) / 100);
     const rawGain = baseCredit * frictionMultiplier * speedBonus * headroomFactor;
     const deltaPct = Math.max(1, Math.round(rawGain));
-    const newMasteryPct = Math.min(100, Math.max(0, currentMasteryPct + deltaPct));
+    const newReadinessPct = Math.min(100, Math.max(0, currentReadinessPct + deltaPct));
 
     return {
-      newMasteryPct,
+      newReadinessPct,
       deltaPct,
-      grade: MetricsEngine.getGradeTier(newMasteryPct),
+      grade: MetricsEngine.getGradeTier(newReadinessPct),
     };
-  }
-
-  /**
-   * Computes overall weighted performance grade and readiness percentage.
-   */
-  static calculateOverallGrade(topicMasteries: TopicMastery[]): {
-    overallMasteryPct: number;
-    overallGrade: GradeTier;
-  } {
-    if (!topicMasteries || topicMasteries.length === 0) {
-      return { overallMasteryPct: 0, overallGrade: "Novice" };
-    }
-
-    const totalMastery = topicMasteries.reduce((sum, tm) => sum + (tm.masteryPct || 0), 0);
-    const overallMasteryPct = Math.round(totalMastery / topicMasteries.length);
-    const overallGrade = MetricsEngine.getGradeTier(overallMasteryPct);
-
-    return {
-      overallMasteryPct,
-      overallGrade,
-    };
-  }
-
-  /**
-   * Legacy backward-compatible Elo calculation.
-   */
-  static calculateElo(
-    currentElo: number,
-    problemRating: number,
-    durationSec: number,
-    targetSec: number,
-    passed: boolean,
-  ): { newElo: number; delta: number } {
-    const K = 32;
-    const expectedScore = 1 / (1 + 10 ** ((problemRating - currentElo) / 400));
-
-    let actualScore = 0;
-    if (passed) {
-      const speedRatio = targetSec / Math.max(durationSec, 60);
-      actualScore =
-        speedRatio >= 1.0 ? Math.min(1.2, 0.9 + speedRatio * 0.1) : Math.max(0.6, speedRatio * 0.9);
-    }
-
-    const delta = Math.round(K * (actualScore - expectedScore));
-    const newElo = Math.max(800, currentElo + delta);
-
-    return { newElo, delta };
   }
 
   /**

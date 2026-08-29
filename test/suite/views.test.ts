@@ -3,14 +3,14 @@ import { MemoryStorageAdapter, StorageManager } from "../../src/storage/storage-
 import { StatsCalculator } from "../../src/views/stats-calculator";
 
 describe("Stats Dashboard & Telemetry Analytics Suite", () => {
-  it("should calculate aggregate statistics across topics and solve times", async () => {
+  it("should calculate aggregate statistics across readiness, difficulty balance, and solve times", async () => {
     const storage = new StorageManager(new MemoryStorageAdapter());
 
-    // Record attempts across multiple topics
+    // Record attempts
     await storage.recordAttempt({
       problemId: 1,
       slug: "two-sum",
-      topic: "Array & Hashing",
+      difficulty: "Easy",
       durationSec: 400,
       targetSec: 900,
       thinkingSec: 50,
@@ -21,7 +21,7 @@ describe("Stats Dashboard & Telemetry Analytics Suite", () => {
     await storage.recordAttempt({
       problemId: 70,
       slug: "climbing-stairs",
-      topic: "Dynamic Programming",
+      difficulty: "Easy",
       durationSec: 300,
       targetSec: 600,
       thinkingSec: 40,
@@ -33,6 +33,7 @@ describe("Stats Dashboard & Telemetry Analytics Suite", () => {
     expect(stats.totalSolved).toBe(2);
     expect(stats.zeroShotRate).toBeGreaterThan(0);
     expect(stats.avgDurationMinutes).toBeGreaterThan(0);
-    expect(stats.topicMasteries.length).toBeGreaterThanOrEqual(2);
+    expect(stats.trend.readinessPct).toBeGreaterThan(0);
+    expect(stats.trend.easySolved).toBe(2);
   });
 });

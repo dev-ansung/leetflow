@@ -1,5 +1,5 @@
 import { TrackRegistry } from "../data/track-registry";
-import type { AttemptLog, StorageManager, TopicMasteryState } from "../storage/storage-manager";
+import type { AttemptLog, StorageManager } from "../storage/storage-manager";
 import type { UserTrendMetrics } from "../types";
 
 export interface SummaryStats {
@@ -13,8 +13,7 @@ export interface SummaryStats {
   neetCodeTotal: number;
   zeroShotRate: number;
   avgDurationMinutes: number;
-  topicMasteries: TopicMasteryState[];
-  dueReviews: { topic: string; daysOverdue: number }[];
+  dueReviewsCount: number;
   attempts: AttemptLog[];
   frictionBreakdown: {
     trivial: number;
@@ -54,22 +53,14 @@ export class StatsCalculator {
         ? Math.round((totalDuration / passedAttempts.length / 60) * 10) / 10
         : 0;
 
-    const allProblems = TrackRegistry.getAllUniqueProblems();
-    const topics = Array.from(new Set(allProblems.map((p) => p.topic)));
-    const topicMasteries: TopicMasteryState[] = [];
-    const dueReviews: { topic: string; daysOverdue: number }[] = [];
+    let dueReviewsCount = 0;
     const now = Date.now();
-
-    for (const t of topics) {
-      const mastery = await storage.getTopicMastery(t);
-      if (mastery.solvedCount > 0) {
-        topicMasteries.push(mastery);
-        if (mastery.nextReviewDue) {
-          const dueTime = new Date(mastery.nextReviewDue).getTime();
-          if (dueTime <= now) {
-            const daysOverdue = Math.max(0, Math.round((now - dueTime) / (24 * 3600 * 1000)));
-            dueReviews.push({ topic: t, daysOverdue });
-          }
+    for (const slug of solvedSlugs) {
+      const review = await storage.getProblemReview(slug);
+      if (review.nextReviewDue) {
+        const dueTime = new Date(review.nextReviewDue).getTime();
+        if (dueTime <= now) {
+          dueReviewsCount++;
         }
       }
     }
@@ -94,8 +85,7 @@ export class StatsCalculator {
       neetCodeTotal: neetCodeProblems.length,
       zeroShotRate,
       avgDurationMinutes,
-      topicMasteries,
-      dueReviews,
+      dueReviewsCount,
       attempts: [...attempts].reverse(),
       frictionBreakdown,
       trend,

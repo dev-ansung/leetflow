@@ -15,20 +15,18 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
     expect(topics.has("Graph")).toBe(true);
   });
 
-  it("should record attempts and update topic mastery & grades correctly in StorageManager", async () => {
+  it("should record attempts and update unified readiness & grades correctly in StorageManager", async () => {
     const storage = new StorageManager(new MemoryStorageAdapter());
 
-    // Initial Mastery should be 0% (Novice)
-    const initialMastery = await storage.getTopicMastery("Dynamic Programming");
-    expect(initialMastery.masteryPct).toBe(0);
-    expect(initialMastery.grade).toBe("Novice");
-    expect(initialMastery.solvedCount).toBe(0);
+    // Initial Readiness should be 0% (Novice)
+    const initialReadiness = await storage.getReadinessPct();
+    expect(initialReadiness).toBe(0);
 
     // Record a successful attempt
     const res = await storage.recordAttempt({
       problemId: 70,
       slug: "climbing-stairs",
-      topic: "Dynamic Programming",
+      difficulty: "Easy",
       durationSec: 300,
       targetSec: 900,
       thinkingSec: 60,
@@ -36,18 +34,17 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
       frictionRating: 2, // Smooth
     });
 
-    expect(res.newMasteryPct).toBeGreaterThan(0);
+    expect(res.newReadinessPct).toBeGreaterThan(0);
     expect(res.deltaPct).toBeGreaterThan(0);
 
-    const updatedMastery = await storage.getTopicMastery("Dynamic Programming");
-    expect(updatedMastery.solvedCount).toBe(1);
-    expect(updatedMastery.masteryPct).toBeGreaterThan(0);
-    expect(updatedMastery.reviewIntervalDays).toBe(1);
+    const updatedReadiness = await storage.getReadinessPct();
+    expect(updatedReadiness).toBeGreaterThan(0);
 
     const trend = await storage.getUserTrendMetrics();
-    expect(trend.overallMasteryPct).toBeGreaterThanOrEqual(0);
+    expect(trend.readinessPct).toBeGreaterThanOrEqual(0);
     expect(trend.streakDays).toBe(1);
     expect(trend.solvedLast7Days).toBe(1);
+    expect(trend.easySolved).toBe(1);
 
     const attempts = await storage.getAttempts();
     expect(attempts.length).toBe(1);
@@ -62,7 +59,7 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
     await storage.recordAttempt({
       problemId: 1,
       slug: "two-sum",
-      topic: "Array & Hashing",
+      difficulty: "Easy",
       durationSec: 400,
       targetSec: 900,
       thinkingSec: 50,
@@ -71,24 +68,21 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
     });
 
     // Manually backdate nextReviewDue to yesterday
-    const mastery = await storage.getTopicMastery("Array & Hashing");
-    mastery.nextReviewDue = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    await storage.saveTopicMastery(mastery);
+    const review = await storage.getProblemReview("two-sum");
+    review.nextReviewDue = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    await storage.saveProblemReview(review);
 
     const nextProblem = await engine.recommendNext();
     expect(nextProblem).toBeDefined();
-    expect(nextProblem.slug).toBeDefined();
+    expect(nextProblem.slug).toBe("two-sum");
   });
 
-  it("should recommend within optimal Mastery zone of proximal development", async () => {
+  it("should recommend within optimal Readiness zone of proximal development", async () => {
     const storage = new StorageManager(new MemoryStorageAdapter());
     const engine = new RecommendationEngine(storage);
 
-    // Elevate Tree Mastery to 65% (B tier)
-    const treeMastery = await storage.getTopicMastery("Binary Tree");
-    treeMastery.masteryPct = 65;
-    treeMastery.grade = "B";
-    await storage.saveTopicMastery(treeMastery);
+    // Elevate Readiness to 65% (B tier)
+    await storage.setReadinessPct(65);
 
     const recommended = await engine.recommendNext("blind75");
     expect(recommended.topic).toBeDefined();

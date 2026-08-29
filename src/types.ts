@@ -43,24 +43,15 @@ export interface TestResult {
   error?: string;
 }
 
-export interface TopicMastery {
-  topic: string;
-  masteryPct: number; // 0 - 100
-  grade: GradeTier;
-  solvedCount: number;
-  lastPracticedAt: string;
-  reviewIntervalDays: number;
-  repetitionLevel: number;
-  /** Backward-compatible Elo field */
-  elo: number;
-}
-
 export interface UserTrendMetrics {
-  overallGrade: GradeTier;
-  overallMasteryPct: number;
+  grade: GradeTier;
+  readinessPct: number;
   streakDays: number;
   solvedLast7Days: number;
   solvedLast30Days: number;
   smoothRatePct: number;
   averageDurationMinutes: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
 }

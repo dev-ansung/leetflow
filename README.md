@@ -98,25 +98,25 @@ class Solution:
 
 ---
 
-### 3. 🧠 0-100% Mastery, Overall Grade & User Trend Analytics
-Never solve 100 problems only to forget how to traverse a graph a month later.
+### 3. 🧠 Unified Global Readiness Score & User Trend Analytics
+Never solve 100 problems only to forget what you practiced a month later.
 
-* **Overall Letter Grade (S / A / B / C / D / Novice)**: Displays your global interview readiness score prominently at the top of your sidebar and Console dashboard (e.g. `🏆 Overall Grade: A (84% Mastery)`).
-* **0 - 100% Topic Mastery**: Tracks exact mastery percentages per category (Dynamic Programming, Binary Search, Trees, Graphs, Sliding Window).
-* **SuperMemo-2 (SM-2) Scheduling**: Calculates optimal review intervals based on your self-reported cognitive friction rating:
-  * **1 - Trivial**: Instant recall ($+12\%$ Mastery, long review interval).
-  * **2 - Smooth**: Solved with natural flow ($+10\%$ Mastery).
-  * **3 - Struggled**: Needed multiple attempts or debugging ($+5\%$ partial Mastery, short review interval).
+* **Unified Interview Readiness (0 - 100%) & Letter Grade (S / A / B / C / D / Novice)**: Avoids artificial topic silos and tracks your true holistic interview readiness directly (e.g. `🏆 Interview Readiness: 84% [Grade A]`).
+* **SuperMemo-2 (SM-2) Scheduling**: Calculates optimal spaced review intervals based on your self-reported cognitive friction rating:
+  * **1 - Trivial**: Instant recall ($+10\%$ Readiness, long review interval).
+  * **2 - Smooth**: Solved with natural flow ($+8\%$ Readiness).
+  * **3 - Struggled**: Needed multiple attempts or debugging ($+4\%$ partial Readiness, short review interval).
   * **4 - Looked at Solution**: Required looking up the pattern ($+1\%$ exposure, resets SM-2 interval to 1 day).
 * **Rich User Trend Analytics**:
   * **Solve Velocity**: 7-day and 30-day solve velocity with consecutive daily streak tracker.
+  * **Difficulty Distribution**: Tracks balance across Easy, Medium, and Hard tiers.
   * **Cognitive Flow Rate**: Tracks the percentage of problems solved with zero/low friction over time.
   * **Average Duration**: Tracks your solving speed against benchmark targets.
 
 👉 *For the complete mathematical formula and grade threshold breakdowns, see the **[Proficiency & Grading Specification (PROFICIENCY.md)](PROFICIENCY.md)**.*
 
 <!-- SCREENSHOT: Proficiency & Telemetry Sidebar -->
-<!-- Placeholder: Close-up of the Proficiency & Telemetry sidebar panel showing Total Solved, Active Roadmap %, Zero-Shot accuracy, Average Duration, and Topic Mastery Elo ratings -->
+<!-- Placeholder: Close-up of the Proficiency & Telemetry sidebar panel showing Global Readiness Score, Active Roadmap %, Difficulty distribution, and Spaced Review counters -->
 
 ---
 
