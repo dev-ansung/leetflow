@@ -1,4 +1,3 @@
-
 export class MetricsEngine {
   /**
    * Calculates adjusted Elo rating based on solve speed and difficulty.
@@ -13,16 +12,17 @@ export class MetricsEngine {
     problemRating: number,
     durationSec: number,
     targetSec: number,
-    passed: boolean
+    passed: boolean,
   ): { newElo: number; delta: number } {
     const K = 32;
-    const expectedScore = 1 / (1 + Math.pow(10, (problemRating - currentElo) / 400));
-    
+    const expectedScore = 1 / (1 + 10 ** ((problemRating - currentElo) / 400));
+
     let actualScore = 0;
     if (passed) {
       // Speed multiplier: faster solve = higher score bonus (0.8 to 1.2)
       const speedRatio = targetSec / Math.max(durationSec, 60);
-      actualScore = speedRatio >= 1.0 ? Math.min(1.2, 0.9 + speedRatio * 0.1) : Math.max(0.6, speedRatio * 0.9);
+      actualScore =
+        speedRatio >= 1.0 ? Math.min(1.2, 0.9 + speedRatio * 0.1) : Math.max(0.6, speedRatio * 0.9);
     }
 
     const delta = Math.round(K * (actualScore - expectedScore));
@@ -40,7 +40,7 @@ export class MetricsEngine {
   static calculateSM2(
     rating: 1 | 2 | 3 | 4,
     repetition: number,
-    previousInterval: number
+    previousInterval: number,
   ): { nextIntervalDays: number; newRepetition: number } {
     // Convert 1-4 scale to SM-2 quality (5: Trivial, 4: Smooth, 2: Struggled, 0: Failed)
     const qualityMap: Record<number, number> = { 1: 5, 2: 4, 3: 2, 4: 0 };

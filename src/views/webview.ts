@@ -1,6 +1,5 @@
-
 import * as vscode from "vscode";
-import { Problem, TestResult } from "../types";
+import type { Problem, TestResult } from "../types";
 
 export class LeetFlowWebview {
   public static currentPanel: LeetFlowWebview | undefined;
@@ -34,7 +33,7 @@ export class LeetFlowWebview {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-      }
+      },
     );
 
     LeetFlowWebview.currentPanel = new LeetFlowWebview(panel, problem);
@@ -54,7 +53,8 @@ export class LeetFlowWebview {
 
   private getHtml(): string {
     const p = this.problem;
-    const diffColor = p.difficulty === "Easy" ? "#49c277" : p.difficulty === "Medium" ? "#ffc01e" : "#ff375f";
+    const diffColor =
+      p.difficulty === "Easy" ? "#49c277" : p.difficulty === "Medium" ? "#ffc01e" : "#ff375f";
 
     let testResultsHtml = "";
     if (this.testResult) {
@@ -80,7 +80,7 @@ export class LeetFlowWebview {
               ${c.error ? `<div class="error-text"><strong>Error:</strong> ${c.error}</div>` : ""}
             </div>
           </div>
-        `
+        `,
           )
           .join("");
       } else if (res.error) {

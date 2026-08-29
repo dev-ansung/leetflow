@@ -1,11 +1,10 @@
-
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { MetricsEngine } from "../../src/core/metrics";
 import { LeetCodeProvider } from "../../src/providers/leetcode";
 import { PythonRunner } from "../../src/runners/python-runner";
-import { MetricsEngine } from "../../src/core/metrics";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 
 describe("LeetFlow Integration & PoC Test Suite", () => {
   it("1. Sourcing: should fetch LC 1 (Two Sum) from LeetCode GraphQL", async () => {
@@ -20,9 +19,11 @@ describe("LeetFlow Integration & PoC Test Suite", () => {
   it("2. Sandbox: should execute valid Python code and pass test cases", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "leetflow-test-"));
     const solPath = path.join(tmpDir, "solution.py");
-    
+
     // Correct Two Sum implementation
-    fs.writeFileSync(solPath, `
+    fs.writeFileSync(
+      solPath,
+      `
 class Solution:
     def twoSum(self, nums: list[int], target: int) -> list[int]:
         seen = {}
@@ -32,19 +33,21 @@ class Solution:
                 return [seen[diff], i]
             seen[n] = i
         return []
-`, "utf-8");
+`,
+      "utf-8",
+    );
 
     const cases = [
       { id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected: [0, 1] },
       { id: 2, input: { nums: [3, 2, 4], target: 6 }, expected: [1, 2] },
-      { id: 3, input: { nums: [3, 3], target: 6 }, expected: [0, 1] }
+      { id: 3, input: { nums: [3, 3], target: 6 }, expected: [0, 1] },
     ];
 
     const res = await PythonRunner.runTests(solPath, "twoSum", cases);
     expect(res.allPassed).toBe(true);
     expect(res.passedCount).toBe(3);
     expect(res.caseResults.length).toBe(3);
-    
+
     // Cleanup
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
@@ -52,22 +55,24 @@ class Solution:
   it("3. Sandbox: should detect and handle failing test cases", async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "leetflow-test-fail-"));
     const solPath = path.join(tmpDir, "solution.py");
-    
+
     // Buggy implementation
-    fs.writeFileSync(solPath, `
+    fs.writeFileSync(
+      solPath,
+      `
 class Solution:
     def twoSum(self, nums: list[int], target: int) -> list[int]:
         return [0, 0]
-`, "utf-8");
+`,
+      "utf-8",
+    );
 
-    const cases = [
-      { id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected: [0, 1] }
-    ];
+    const cases = [{ id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected: [0, 1] }];
 
     const res = await PythonRunner.runTests(solPath, "twoSum", cases);
     expect(res.allPassed).toBe(false);
     expect(res.passedCount).toBe(0);
-    
+
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 

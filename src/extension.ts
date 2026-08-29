@@ -1,13 +1,13 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import { LeetCodeProvider, BLIND_75_SEED } from "./providers/leetcode";
-import { PythonRunner } from "./runners/python-runner";
-import { LeetFlowWebview } from "./views/webview";
-import { LeetFlowTracksProvider } from "./views/treeview";
 import { MetricsEngine } from "./core/metrics";
-import { Problem } from "./types";
+import { BLIND_75_SEED, LeetCodeProvider } from "./providers/leetcode";
+import { PythonRunner } from "./runners/python-runner";
+import type { Problem } from "./types";
+import { LeetFlowTracksProvider } from "./views/treeview";
+import { LeetFlowWebview } from "./views/webview";
 
 let currentProblem: Problem | undefined;
 let sessionStartTime: number = 0;
@@ -33,9 +33,12 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // 4. Register Command: Start Specific Problem
-  const startCmd = vscode.commands.registerCommand("leetflow.startProblem", async (slug: string) => {
-    await startProblemSession(slug, context);
-  });
+  const startCmd = vscode.commands.registerCommand(
+    "leetflow.startProblem",
+    async (slug: string) => {
+      await startProblemSession(slug, context);
+    },
+  );
 
   // 5. Register Command: Run Tests
   const testCmd = vscode.commands.registerCommand("leetflow.test", async () => {
@@ -62,22 +65,22 @@ export function activate(context: vscode.ExtensionContext) {
       async () => {
         const result = await PythonRunner.runTests(
           doc.fileName,
-          currentProblem!.functionName,
-          currentProblem!.testCases
+          currentProblem?.functionName,
+          currentProblem?.testCases,
         );
 
         LeetFlowWebview.updateTestResults(result);
 
         if (result.allPassed) {
           vscode.window.showInformationMessage(
-            `✔ All ${result.passedCount} Test Cases Passed in ${result.totalDurationMs}ms!`
+            `✔ All ${result.passedCount} Test Cases Passed in ${result.totalDurationMs}ms!`,
           );
         } else {
           vscode.window.showErrorMessage(
-            `✘ Test Failed: ${result.passedCount}/${result.totalCount} passed. Check Webview panel for details.`
+            `✘ Test Failed: ${result.passedCount}/${result.totalCount} passed. Check Webview panel for details.`,
           );
         }
-      }
+      },
     );
   });
 
@@ -94,14 +97,14 @@ export function activate(context: vscode.ExtensionContext) {
     const result = await PythonRunner.runTests(
       editor.document.fileName,
       currentProblem.functionName,
-      currentProblem.testCases
+      currentProblem.testCases,
     );
 
     LeetFlowWebview.updateTestResults(result);
 
     if (!result.allPassed) {
       vscode.window.showErrorMessage(
-        "Cannot submit: Not all test cases passed. Run tests and verify edge cases first."
+        "Cannot submit: Not all test cases passed. Run tests and verify edge cases first.",
       );
       return;
     }
@@ -113,13 +116,21 @@ export function activate(context: vscode.ExtensionContext) {
       [
         { label: "1 - Trivial", description: "Solved effortlessly on autopilot", value: 1 },
         { label: "2 - Smooth", description: "Solved with solid understanding", value: 2 },
-        { label: "3 - Struggled", description: "Needed extensive debugging or trial-and-error", value: 3 },
-        { label: "4 - Looked at Solution", description: "Could not solve without looking up answer", value: 4 },
+        {
+          label: "3 - Struggled",
+          description: "Needed extensive debugging or trial-and-error",
+          value: 3,
+        },
+        {
+          label: "4 - Looked at Solution",
+          description: "Could not solve without looking up answer",
+          value: 4,
+        },
       ],
       {
         title: `LeetFlow: Rate Cognitive Friction for #${currentProblem.id} ${currentProblem.title}`,
         placeHolder: "How did the solve feel?",
-      }
+      },
     );
 
     const ratingVal = (frictionChoice?.value || 2) as 1 | 2 | 3 | 4;
@@ -127,10 +138,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     const { newElo, delta } = MetricsEngine.calculateElo(
       currentElo,
-      currentProblem.targetTimeSeconds > 2000 ? 1900 : currentProblem.targetTimeSeconds > 1000 ? 1600 : 1200,
+      currentProblem.targetTimeSeconds > 2000
+        ? 1900
+        : currentProblem.targetTimeSeconds > 1000
+          ? 1600
+          : 1200,
       durationSec,
       currentProblem.targetTimeSeconds,
-      true
+      true,
     );
 
     const { nextIntervalDays } = MetricsEngine.calculateSM2(ratingVal, 1, 1);
@@ -140,21 +155,21 @@ export function activate(context: vscode.ExtensionContext) {
     stopTimer();
 
     vscode.window.showInformationMessage(
-      `🎉 Problem Solved in ${durationMin}m! Topic Elo: ${newElo} (${delta >= 0 ? "+" : ""}${delta}). Next review scheduled in ${nextIntervalDays} days.`
+      `🎉 Problem Solved in ${durationMin}m! Topic Elo: ${newElo} (${delta >= 0 ? "+" : ""}${delta}). Next review scheduled in ${nextIntervalDays} days.`,
     );
   });
 
   // 7. Register Command: View Stats
   const statsCmd = vscode.commands.registerCommand("leetflow.stats", () => {
     vscode.window.showInformationMessage(
-      "LeetFlow Telemetry: Steady practice! Check Sidebar for topic mastery breakdown."
+      "LeetFlow Telemetry: Steady practice! Check Sidebar for topic mastery breakdown.",
     );
   });
 
   context.subscriptions.push(nextCmd, startCmd, testCmd, submitCmd, statsCmd);
 }
 
-async function startProblemSession(slug: string, context: vscode.ExtensionContext) {
+async function startProblemSession(slug: string, _context: vscode.ExtensionContext) {
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -186,12 +201,12 @@ async function startProblemSession(slug: string, context: vscode.ExtensionContex
         startTimer(problem.title);
 
         vscode.window.showInformationMessage(
-          `Started #${problem.id} ${problem.title}. Press Run Tests in editor title bar when ready!`
+          `Started #${problem.id} ${problem.title}. Press Run Tests in editor title bar when ready!`,
         );
       } catch (err: any) {
         vscode.window.showErrorMessage(`Failed to load problem: ${err.message}`);
       }
-    }
+    },
   );
 }
 

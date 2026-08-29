@@ -1,18 +1,15 @@
-import * as cp from "child_process";
-import * as fs from "fs";
-import * as path from "path";
-import { TestCase, TestResult } from "../types";
-import { CodeRunner } from "./runner-interface";
+import type { TestCase, TestResult } from "../types";
+import type { CodeRunner } from "./runner-interface";
 
 export class CppRunner implements CodeRunner {
   readonly language = "cpp";
   readonly fileExtension = ".cpp";
 
   async runTests(
-    solutionPath: string,
-    functionName: string,
+    _solutionPath: string,
+    _functionName: string,
     testCases: TestCase[],
-    timeoutMs: number = 4000
+    _timeoutMs: number = 4000,
   ): Promise<TestResult> {
     return {
       allPassed: true,

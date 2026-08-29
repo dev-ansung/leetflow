@@ -1,4 +1,4 @@
-import { TestCase, TestResult } from "../types";
+import type { TestCase, TestResult } from "../types";
 
 export interface CodeRunner {
   readonly language: string;
@@ -7,6 +7,6 @@ export interface CodeRunner {
     solutionPath: string,
     functionName: string,
     testCases: TestCase[],
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<TestResult>;
 }

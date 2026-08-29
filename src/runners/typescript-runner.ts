@@ -1,8 +1,8 @@
-import * as cp from "child_process";
-import * as fs from "fs";
-import * as path from "path";
-import { TestCase, TestResult, CaseResult } from "../types";
-import { CodeRunner } from "./runner-interface";
+import * as cp from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { TestCase, TestResult } from "../types";
+import type { CodeRunner } from "./runner-interface";
 
 export class TypeScriptRunner implements CodeRunner {
   readonly language = "typescript";
@@ -12,7 +12,7 @@ export class TypeScriptRunner implements CodeRunner {
     solutionPath: string,
     functionName: string,
     testCases: TestCase[],
-    timeoutMs: number = 4000
+    timeoutMs: number = 4000,
   ): Promise<TestResult> {
     const runner = new TypeScriptRunner();
     return runner.runTests(solutionPath, functionName, testCases, timeoutMs);
@@ -22,7 +22,7 @@ export class TypeScriptRunner implements CodeRunner {
     solutionPath: string,
     functionName: string,
     testCases: TestCase[],
-    timeoutMs: number = 4000
+    timeoutMs: number = 4000,
   ): Promise<TestResult> {
     const dir = path.dirname(solutionPath);
     const modBase = path.basename(solutionPath, ".ts");
@@ -114,7 +114,7 @@ export class TypeScriptRunner implements CodeRunner {
       "",
       "run().catch((e) => {",
       "  console.log(JSON.stringify({ error: e.message }));",
-      "});"
+      "});",
     ].join("\n");
 
     fs.writeFileSync(harnessPath, harnessContent, "utf-8");

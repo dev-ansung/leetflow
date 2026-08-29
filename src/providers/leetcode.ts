@@ -1,4 +1,4 @@
-import { Problem, TestCase, Difficulty } from "../types";
+import type { Difficulty, Problem, TestCase } from "../types";
 
 export class LeetCodeProvider {
   private static readonly GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
@@ -29,7 +29,7 @@ export class LeetCodeProvider {
     `;
 
     try {
-      const response = await fetch(this.GRAPHQL_ENDPOINT, {
+      const response = await fetch(LeetCodeProvider.GRAPHQL_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,13 +54,21 @@ export class LeetCodeProvider {
 
       // If locked/paid, fallback to doocs mirror
       if (q.isPaidOnly || !q.content) {
-        return await this.fetchFromMirror(q.questionFrontendId, titleSlug, q.title, q.difficulty);
+        return await LeetCodeProvider.fetchFromMirror(
+          q.questionFrontendId,
+          titleSlug,
+          q.title,
+          q.difficulty,
+        );
       }
 
-      return this.parseGraphQLResponse(q);
+      return LeetCodeProvider.parseGraphQLResponse(q);
     } catch (err: any) {
-      console.warn(`GraphQL query failed for ${titleSlug}, attempting mirror fallback:`, err.message);
-      return await this.fetchFromMirror(1, titleSlug, titleSlug, "Medium");
+      console.warn(
+        `GraphQL query failed for ${titleSlug}, attempting mirror fallback:`,
+        err.message,
+      );
+      return await LeetCodeProvider.fetchFromMirror(1, titleSlug, titleSlug, "Medium");
     }
   }
 
@@ -71,9 +79,14 @@ export class LeetCodeProvider {
       `class Solution:\n    def ${meta.name}(self):\n        pass\n`;
 
     const topics = q.topicTags?.map((t: any) => t.name) || ["Algorithms"];
-    const testCases = this.parseTestCases(meta.params, q.exampleTestcaseList || [], q.content || "");
+    const testCases = LeetCodeProvider.parseTestCases(
+      meta.params,
+      q.exampleTestcaseList || [],
+      q.content || "",
+    );
 
-    const diff: Difficulty = q.difficulty === "Hard" ? "Hard" : q.difficulty === "Medium" ? "Medium" : "Easy";
+    const diff: Difficulty =
+      q.difficulty === "Hard" ? "Hard" : q.difficulty === "Medium" ? "Medium" : "Easy";
     const targetTimeSeconds = diff === "Easy" ? 900 : diff === "Medium" ? 1500 : 2700;
 
     return {
@@ -96,11 +109,11 @@ export class LeetCodeProvider {
     const cases: TestCase[] = [];
 
     const expectedOutputs: any[] = [];
-    const preRegex = new RegExp("<pre>[\\s\\S]*?<\\/pre>", "gi");
+    const preRegex = /<pre>[\s\S]*?<\/pre>/gi;
     const preBlocks = content.match(preRegex) || [];
 
     for (const block of preBlocks) {
-      const outRegex = new RegExp("Output:?(?:<\\/strong>)?[\\s]*([^\\n\\r<]+)", "i");
+      const outRegex = /Output:?(?:<\/strong>)?[\s]*([^\n\r<]+)/i;
       const outMatch = block.match(outRegex);
       if (outMatch) {
         const clean = outMatch[1].trim().replace(/<[^>]+>/g, "");
@@ -145,7 +158,12 @@ export class LeetCodeProvider {
     return cases;
   }
 
-  private static async fetchFromMirror(id: number, slug: string, title: string, diff: string): Promise<Problem> {
+  private static async fetchFromMirror(
+    id: number,
+    slug: string,
+    title: string,
+    diff: string,
+  ): Promise<Problem> {
     const formattedId = String(id).padStart(4, "0");
     const folderStart = Math.floor((id || 1) / 100) * 100;
     const folderEnd = folderStart + 99;
@@ -161,13 +179,15 @@ export class LeetCodeProvider {
       }
       const md = await resp.text();
 
-      const descRegex = new RegExp("<!-- description:start -->([\\s\\S]*?)<!-- description:end -->");
+      const descRegex = /<!-- description:start -->([\s\S]*?)<!-- description:end -->/;
       const descMatch = md.match(descRegex);
       const descHtml = descMatch ? descMatch[1] : `<p>Problem description for ${title}</p>`;
 
-      const pyRegex = new RegExp("```python([\\s\\S]*?)```");
+      const pyRegex = /```python([\s\S]*?)```/;
       const pyMatch = md.match(pyRegex);
-      const starterCode = pyMatch ? pyMatch[1].trim() : `class Solution:\n    def solve(self):\n        pass\n`;
+      const starterCode = pyMatch
+        ? pyMatch[1].trim()
+        : `class Solution:\n    def solve(self):\n        pass\n`;
 
       return {
         id: id || 1,
@@ -204,18 +224,96 @@ export class LeetCodeProvider {
 
 export const BLIND_75_SEED = [
   { id: 1, slug: "two-sum", title: "Two Sum", difficulty: "Easy", topic: "Array & Hash Table" },
-  { id: 217, slug: "contains-duplicate", title: "Contains Duplicate", difficulty: "Easy", topic: "Array & Hash Table" },
-  { id: 242, slug: "valid-anagram", title: "Valid Anagram", difficulty: "Easy", topic: "Array & Hash Table" },
-  { id: 121, slug: "best-time-to-buy-and-sell-stock", title: "Best Time to Buy and Sell Stock", difficulty: "Easy", topic: "Sliding Window" },
+  {
+    id: 217,
+    slug: "contains-duplicate",
+    title: "Contains Duplicate",
+    difficulty: "Easy",
+    topic: "Array & Hash Table",
+  },
+  {
+    id: 242,
+    slug: "valid-anagram",
+    title: "Valid Anagram",
+    difficulty: "Easy",
+    topic: "Array & Hash Table",
+  },
+  {
+    id: 121,
+    slug: "best-time-to-buy-and-sell-stock",
+    title: "Best Time to Buy and Sell Stock",
+    difficulty: "Easy",
+    topic: "Sliding Window",
+  },
   { id: 15, slug: "3sum", title: "3Sum", difficulty: "Medium", topic: "Two Pointers" },
-  { id: 206, slug: "reverse-linked-list", title: "Reverse Linked List", difficulty: "Easy", topic: "Linked List" },
-  { id: 141, slug: "linked-list-cycle", title: "Linked List Cycle", difficulty: "Easy", topic: "Linked List" },
-  { id: 226, slug: "invert-binary-tree", title: "Invert Binary Tree", difficulty: "Easy", topic: "Binary Tree" },
-  { id: 104, slug: "maximum-depth-of-binary-tree", title: "Maximum Depth of Binary Tree", difficulty: "Easy", topic: "Binary Tree" },
-  { id: 70, slug: "climbing-stairs", title: "Climbing Stairs", difficulty: "Easy", topic: "Dynamic Programming" },
-  { id: 322, slug: "coin-change", title: "Coin Change", difficulty: "Medium", topic: "Dynamic Programming" },
-  { id: 300, slug: "longest-increasing-subsequence", title: "Longest Increasing Subsequence", difficulty: "Medium", topic: "Dynamic Programming" },
-  { id: 200, slug: "number-of-islands", title: "Number of Islands", difficulty: "Medium", topic: "Graph" },
-  { id: 20, slug: "valid-parentheses", title: "Valid Parentheses", difficulty: "Easy", topic: "Stack" },
-  { id: 704, slug: "binary-search", title: "Binary Search", difficulty: "Easy", topic: "Binary Search" }
+  {
+    id: 206,
+    slug: "reverse-linked-list",
+    title: "Reverse Linked List",
+    difficulty: "Easy",
+    topic: "Linked List",
+  },
+  {
+    id: 141,
+    slug: "linked-list-cycle",
+    title: "Linked List Cycle",
+    difficulty: "Easy",
+    topic: "Linked List",
+  },
+  {
+    id: 226,
+    slug: "invert-binary-tree",
+    title: "Invert Binary Tree",
+    difficulty: "Easy",
+    topic: "Binary Tree",
+  },
+  {
+    id: 104,
+    slug: "maximum-depth-of-binary-tree",
+    title: "Maximum Depth of Binary Tree",
+    difficulty: "Easy",
+    topic: "Binary Tree",
+  },
+  {
+    id: 70,
+    slug: "climbing-stairs",
+    title: "Climbing Stairs",
+    difficulty: "Easy",
+    topic: "Dynamic Programming",
+  },
+  {
+    id: 322,
+    slug: "coin-change",
+    title: "Coin Change",
+    difficulty: "Medium",
+    topic: "Dynamic Programming",
+  },
+  {
+    id: 300,
+    slug: "longest-increasing-subsequence",
+    title: "Longest Increasing Subsequence",
+    difficulty: "Medium",
+    topic: "Dynamic Programming",
+  },
+  {
+    id: 200,
+    slug: "number-of-islands",
+    title: "Number of Islands",
+    difficulty: "Medium",
+    topic: "Graph",
+  },
+  {
+    id: 20,
+    slug: "valid-parentheses",
+    title: "Valid Parentheses",
+    difficulty: "Easy",
+    topic: "Stack",
+  },
+  {
+    id: 704,
+    slug: "binary-search",
+    title: "Binary Search",
+    difficulty: "Easy",
+    topic: "Binary Search",
+  },
 ];

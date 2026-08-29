@@ -93,9 +93,12 @@
     "build": "bun run build:bundle",
     "build:bundle": "bun build ./src/extension.ts --outfile=./dist/extension.js --target=node --external=vscode --format=cjs",
     "package": "bun run build && bunx @vscode/vsce package --no-dependencies --out artifacts/vsix/leetflow-0.1.0.vsix",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "biome check src test",
+    "lint:fix": "biome check --write src test"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.11",
     "@types/node": "^26.4.0",
     "@types/vscode": "1.85.0",
     "@vscode/vsce": "^3.9.2",

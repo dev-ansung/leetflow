@@ -1,11 +1,9 @@
-
-import { describe, it, expect } from "bun:test";
-import { TypeScriptRunner } from "../../src/runners/typescript-runner";
-import { PythonRunner } from "../../src/runners/python-runner";
+import { describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { RunnerFactory } from "../../src/runners/runner-factory";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
+import { TypeScriptRunner } from "../../src/runners/typescript-runner";
 
 describe("Multi-Language Runner Sandbox Suite", () => {
   it("should resolve correct runner from file extension via RunnerFactory", () => {
@@ -19,7 +17,9 @@ describe("Multi-Language Runner Sandbox Suite", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "leetflow-ts-test-"));
     const solPath = path.join(tmpDir, "solution.ts");
 
-    fs.writeFileSync(solPath, `
+    fs.writeFileSync(
+      solPath,
+      `
 export class Solution {
   twoSum(nums: number[], target: number): number[] {
     const map = new Map<number, number>();
@@ -33,7 +33,9 @@ export class Solution {
     return [];
   }
 }
-`, "utf-8");
+`,
+      "utf-8",
+    );
 
     const cases = [
       { id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected: [0, 1] },
@@ -54,17 +56,19 @@ export class Solution {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "leetflow-ts-fail-"));
     const solPath = path.join(tmpDir, "solution.ts");
 
-    fs.writeFileSync(solPath, `
+    fs.writeFileSync(
+      solPath,
+      `
 export class Solution {
   twoSum(nums: number[], target: number): number[] {
     return [0, 0];
   }
 }
-`, "utf-8");
+`,
+      "utf-8",
+    );
 
-    const cases = [
-      { id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected: [0, 1] },
-    ];
+    const cases = [{ id: 1, input: { nums: [2, 7, 11, 15], target: 9 }, expected: [0, 1] }];
 
     const res = await TypeScriptRunner.runTests(solPath, "twoSum", cases);
     expect(res.allPassed).toBe(false);
@@ -79,17 +83,19 @@ export class Solution {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "leetflow-ts-timeout-"));
     const solPath = path.join(tmpDir, "solution.ts");
 
-    fs.writeFileSync(solPath, `
+    fs.writeFileSync(
+      solPath,
+      `
 export class Solution {
   twoSum(nums: number[], target: number): number[] {
     while (true) {}
   }
 }
-`, "utf-8");
+`,
+      "utf-8",
+    );
 
-    const cases = [
-      { id: 1, input: { nums: [1, 2], target: 3 }, expected: [0, 1] },
-    ];
+    const cases = [{ id: 1, input: { nums: [1, 2], target: 3 }, expected: [0, 1] }];
 
     const res = await TypeScriptRunner.runTests(solPath, "twoSum", cases, 1500);
     expect(res.allPassed).toBe(false);
