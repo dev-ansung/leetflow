@@ -35,5 +35,7 @@ describe("Stats Dashboard & Telemetry Analytics Suite", () => {
     expect(stats.avgDurationMinutes).toBeGreaterThan(0);
     expect(stats.trend.readinessPct).toBeGreaterThan(0);
     expect(stats.trend.easySolved).toBe(2);
+    expect(stats.radarTopics.length).toBe(6);
+    expect(stats.radarTopics[0].score).toBeGreaterThanOrEqual(0);
   });
 });

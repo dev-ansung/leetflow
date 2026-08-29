@@ -43,6 +43,13 @@ export interface TestResult {
   error?: string;
 }
 
+export interface TopicRadarMetric {
+  name: string;
+  score: number;
+  solvedCount: number;
+  smoothRate: number;
+}
+
 export interface UserTrendMetrics {
   grade: GradeTier;
   readinessPct: number;

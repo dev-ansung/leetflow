@@ -1,6 +1,6 @@
-import * as fs from "node:fs";
 import * as vscode from "vscode";
 import type { StorageManager } from "../storage/storage-manager";
+import type { TopicRadarMetric } from "../types";
 import { StatsCalculator, type SummaryStats } from "./stats-calculator";
 
 export class LeetFlowConsoleWebview {
@@ -11,9 +11,13 @@ export class LeetFlowConsoleWebview {
   private constructor(
     panel: vscode.WebviewPanel,
     private storage: StorageManager,
-    private onDataChanged?: () => void,
+    private onDataMutated?: () => void,
   ) {
     this._panel = panel;
+    this._panel.webview.options = {
+      enableScripts: true,
+    };
+
     this._update();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -21,32 +25,18 @@ export class LeetFlowConsoleWebview {
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
-          case "resetHistory": {
-            const confirm = await vscode.window.showWarningMessage(
-              "Are you sure you want to reset all LeetFlow practice history, attempts, and Elo ratings?",
-              { modal: true },
-              "Yes, Reset All Data",
-            );
-            if (confirm === "Yes, Reset All Data") {
-              await this.storage.resetAll();
-              if (this.onDataChanged) this.onDataChanged();
-              await this._update();
-              vscode.window.showInformationMessage(
-                "✔ All LeetFlow history and telemetry data has been wiped.",
-              );
-            }
-            break;
-          }
           case "exportData": {
             const json = await this.storage.exportAllData();
             const uri = await vscode.window.showSaveDialog({
               defaultUri: vscode.Uri.file("leetflow-backup.json"),
               filters: { "JSON Files": ["json"] },
-              title: "Export LeetFlow Practice History & Telemetry",
             });
             if (uri) {
-              fs.writeFileSync(uri.fsPath, json, "utf-8");
-              vscode.window.showInformationMessage(`✔ Exported practice backup to ${uri.fsPath}`);
+              const encoder = new TextEncoder();
+              await vscode.workspace.fs.writeFile(uri, encoder.encode(json));
+              vscode.window.showInformationMessage(
+                "LeetFlow telemetry backup exported successfully!",
+              );
             }
             break;
           }
@@ -54,36 +44,50 @@ export class LeetFlowConsoleWebview {
             const uris = await vscode.window.showOpenDialog({
               canSelectMany: false,
               filters: { "JSON Files": ["json"] },
-              title: "Import LeetFlow Practice History",
             });
-            if (uris && uris.length > 0) {
-              const content = fs.readFileSync(uris[0].fsPath, "utf-8");
-              const success = await this.storage.importData(content);
-              if (success) {
-                if (this.onDataChanged) this.onDataChanged();
-                await this._update();
-                vscode.window.showInformationMessage(
-                  "✔ Successfully restored practice history from backup!",
-                );
+            if (uris?.[0]) {
+              const data = await vscode.workspace.fs.readFile(uris[0]);
+              const content = new TextDecoder().decode(data);
+              const ok = await this.storage.importData(content);
+              if (ok) {
+                vscode.window.showInformationMessage("LeetFlow backup restored successfully!");
+                this._update();
+                if (this.onDataMutated) this.onDataMutated();
               } else {
-                vscode.window.showErrorMessage(
-                  "Failed to import: Invalid or corrupted backup JSON file.",
-                );
+                vscode.window.showErrorMessage("Invalid LeetFlow backup JSON file.");
               }
             }
             break;
           }
-          case "purgeWorkspace": {
-            const { deletedCount } = await this.storage.purgeWorkspace();
-            vscode.window.showInformationMessage(
-              `✔ Cleaned ${deletedCount} solution directories in ~/.leetflow/workspace`,
+          case "resetAll": {
+            const answer = await vscode.window.showWarningMessage(
+              "Are you sure you want to reset all LeetFlow practice history, attempts, and readiness telemetry?",
+              { modal: true },
+              "Yes, Reset Everything",
             );
+            if (answer === "Yes, Reset Everything") {
+              await this.storage.resetAll();
+              vscode.window.showInformationMessage("LeetFlow telemetry reset to initial baseline.");
+              this._update();
+              if (this.onDataMutated) this.onDataMutated();
+            }
+            break;
+          }
+          case "purgeWorkspace": {
+            const answer = await vscode.window.showWarningMessage(
+              "This will delete all local solution folders in ~/.leetflow/workspace. Continue?",
+              { modal: true },
+              "Purge Workspace",
+            );
+            if (answer === "Purge Workspace") {
+              const { deletedCount } = await this.storage.purgeWorkspace();
+              vscode.window.showInformationMessage(`Purged ${deletedCount} solution workspaces.`);
+              this._update();
+            }
             break;
           }
           case "startProblem": {
-            if (message.slug) {
-              vscode.commands.executeCommand("leetflow.startProblem", message.slug);
-            }
+            vscode.commands.executeCommand("leetflow.openProblem", message.slug);
             break;
           }
         }
@@ -93,28 +97,24 @@ export class LeetFlowConsoleWebview {
     );
   }
 
-  public static show(storage: StorageManager, onDataChanged?: () => void) {
-    const column = vscode.window.activeTextEditor
-      ? vscode.window.activeTextEditor.viewColumn
-      : undefined;
-
+  public static show(storage: StorageManager, onDataMutated?: () => void) {
     if (LeetFlowConsoleWebview.currentPanel) {
-      LeetFlowConsoleWebview.currentPanel._panel.reveal(column);
+      LeetFlowConsoleWebview.currentPanel._panel.reveal(vscode.ViewColumn.One);
       LeetFlowConsoleWebview.currentPanel._update();
       return;
     }
 
     const panel = vscode.window.createWebviewPanel(
-      "leetflow.consoleWebview",
-      "LeetFlow Console & Control Center",
-      column || vscode.ViewColumn.One,
+      "leetflowConsole",
+      "LeetFlow: Control & Telemetry Console",
+      vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
       },
     );
 
-    LeetFlowConsoleWebview.currentPanel = new LeetFlowConsoleWebview(panel, storage, onDataChanged);
+    LeetFlowConsoleWebview.currentPanel = new LeetFlowConsoleWebview(panel, storage, onDataMutated);
   }
 
   private async _update() {
@@ -131,38 +131,80 @@ export class LeetFlowConsoleWebview {
     }
   }
 
+  private _generateRadarSvg(topics: TopicRadarMetric[]): string {
+    const cx = 150;
+    const cy = 140;
+    const maxR = 85;
+    const numAxes = 6;
+
+    const levels = [0.25, 0.5, 0.75, 1.0];
+    let ringsHtml = "";
+    for (const lvl of levels) {
+      const pts: string[] = [];
+      for (let i = 0; i < numAxes; i++) {
+        const angle = (i * 2 * Math.PI) / numAxes - Math.PI / 2;
+        const x = cx + maxR * lvl * Math.cos(angle);
+        const y = cy + maxR * lvl * Math.sin(angle);
+        pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+      }
+      ringsHtml += `<polygon points="${pts.join(" ")}" fill="${lvl === 1.0 ? "rgba(56, 189, 248, 0.02)" : "none"}" stroke="currentColor" stroke-opacity="${lvl === 1.0 ? "0.22" : "0.1"}" stroke-width="1" stroke-dasharray="${lvl < 1.0 ? "2,2" : "none"}" />`;
+    }
+
+    let axisLinesHtml = "";
+    for (let i = 0; i < numAxes; i++) {
+      const angle = (i * 2 * Math.PI) / numAxes - Math.PI / 2;
+      const x = cx + maxR * Math.cos(angle);
+      const y = cy + maxR * Math.sin(angle);
+      axisLinesHtml += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="currentColor" stroke-opacity="0.16" stroke-width="1" />`;
+    }
+
+    const polyPts: string[] = [];
+    let dotsHtml = "";
+    let labelsHtml = "";
+
+    topics.forEach((t, i) => {
+      const angle = (i * 2 * Math.PI) / numAxes - Math.PI / 2;
+      const r = (Math.max(12, t.score) / 100) * maxR;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      polyPts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+
+      dotsHtml += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2" />`;
+
+      const labelR = maxR + 20;
+      const lx = cx + labelR * Math.cos(angle);
+      const ly = cy + labelR * Math.sin(angle);
+
+      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="9" font-weight="600" opacity="0.9">${t.name}</text>`;
+      labelsHtml += `<text x="${lx.toFixed(1)}" y="${(ly + 9.5).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" fill="#38bdf8" font-size="7.5" font-weight="bold">${t.score}%</text>`;
+    });
+
+    return `
+      <svg viewBox="0 0 300 280" style="width: 100%; max-width: 250px; height: auto; display: block; margin: 0 auto;">
+        ${ringsHtml}
+        ${axisLinesHtml}
+        <polygon points="${polyPts.join(" ")}" fill="rgba(56, 189, 248, 0.22)" stroke="#38bdf8" stroke-width="2.2" stroke-linejoin="round" />
+        ${dotsHtml}
+        ${labelsHtml}
+      </svg>
+    `;
+  }
+
   private _getHtmlForWebview(stats: SummaryStats): string {
-    const _blind75Percent =
-      stats.blind75Total > 0 ? Math.round((stats.blind75Solved / stats.blind75Total) * 100) : 0;
-    const _neetCodePercent =
-      stats.neetCodeTotal > 0 ? Math.round((stats.neetCodeSolved / stats.neetCodeTotal) * 100) : 0;
+    const radarSvg = this._generateRadarSvg(stats.radarTopics);
 
-    const gradeColorMap: Record<string, string> = {
-      S: "#a371f7",
-      A: "#7ee787",
-      B: "#79c0ff",
-      C: "#e3b341",
-      D: "#ff7b72",
-      Novice: "#8b949e",
-    };
-
-    const masteryRows = stats.topicMasteries
-      .map((m) => {
-        const gradeColor = gradeColorMap[m.grade] || "#79c0ff";
-        return `
-        <div class="mastery-item">
-          <div class="mastery-header">
-            <span class="topic-name">${m.topic}</span>
-            <span class="elo-badge" style="color: ${gradeColor}; border: 1px solid ${gradeColor}40;">
-              ${m.masteryPct}% [${m.grade}] · ${m.solvedCount} solved
-            </span>
+    const radarTopicRows = stats.radarTopics
+      .map(
+        (t) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 6px; border-left: 3px solid #38bdf8;">
+          <div>
+            <div style="font-weight: 600; font-size: 12px;">${t.name}</div>
+            <div style="font-size: 10px; opacity: 0.65;">${t.solvedCount} solved · ${t.smoothRate}% smooth flow</div>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: ${m.masteryPct}%; background: ${gradeColor};"></div>
-          </div>
+          <span style="font-weight: 700; color: #38bdf8; font-size: 13px;">${t.score}%</span>
         </div>
-      `;
-      })
+      `,
+      )
       .join("");
 
     const attemptRows = stats.attempts
@@ -186,11 +228,11 @@ export class LeetFlowConsoleWebview {
               #${a.problemId} ${a.slug}
             </a>
           </td>
-          <td><span class="tag">${a.topic}</span></td>
+          <td><span class="tag">${a.difficulty || "Medium"}</span></td>
           <td>${durMin}m <span class="subtext">(${thinkSec}s think)</span></td>
           <td><span class="badge ${frictionClass}">${frictionLabels[a.frictionRating] || "Smooth"}</span></td>
           <td>${a.zeroShot ? "⚡ Zero-Shot" : "Standard"}</td>
-          <td class="date-col">${dateStr}</td>
+          <td><span class="subtext">${dateStr}</span></td>
         </tr>
       `;
       })
@@ -201,261 +243,221 @@ export class LeetFlowConsoleWebview {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LeetFlow Console</title>
+  <title>LeetFlow Control Console</title>
   <style>
     :root {
-      --bg: var(--vscode-editor-background, #1e1e1e);
-      --fg: var(--vscode-editor-foreground, #d4d4d4);
+      --bg-color: var(--vscode-editor-background, #1e1e1e);
       --card-bg: var(--vscode-sideBar-background, #252526);
-      --border: var(--vscode-panel-border, #333);
-      --accent: #007acc;
-      --accent-hover: #0062a3;
-      --success: #388a34;
-      --warning: #cca700;
-      --danger: #e51400;
-      --danger-hover: #b81000;
+      --card-border: var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+      --text-color: var(--vscode-editor-foreground, #cccccc);
+      --accent-blue: #38bdf8;
+      --accent-purple: #a371f7;
+      --accent-green: #7ee787;
+      --accent-yellow: #e3b341;
+      --accent-red: #ff7b72;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       padding: 24px;
-      margin: 0;
       line-height: 1.5;
     }
+
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
       padding-bottom: 16px;
-      margin-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
     }
-    h1 {
-      margin: 0;
-      font-size: 22px;
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
+    .header .tagline {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
     .tabs {
       display: flex;
       gap: 8px;
       margin-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
     }
     .tab-btn {
-      background: var(--card-bg);
-      color: var(--fg);
-      border: 1px solid var(--border);
+      background: none;
+      border: none;
+      color: var(--text-color);
       padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
       font-size: 13px;
-      font-weight: 500;
+      cursor: pointer;
+      opacity: 0.6;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
     }
     .tab-btn.active {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
+      opacity: 1;
+      font-weight: 600;
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
     }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
+
     .card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 16px;
     }
     .card-title {
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
       opacity: 0.7;
-      margin-bottom: 6px;
-    }
-    .card-value {
-      font-size: 26px;
-      font-weight: 700;
-    }
-    .card-subtext {
-      font-size: 12px;
-      opacity: 0.8;
-      margin-top: 4px;
-    }
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 20px 0 12px 0;
-    }
-    .mastery-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 12px;
-    }
-    .mastery-item {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 12px;
-    }
-    .mastery-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      font-weight: 600;
       margin-bottom: 8px;
     }
-    .elo-badge {
-      color: #e5a00d;
+    .card-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
     }
-    .progress-bar {
-      height: 6px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 3px;
-      overflow: hidden;
+    .card-subtext {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 4px;
     }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 3px;
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 12px;
       background: var(--card-bg);
       border-radius: 8px;
       overflow: hidden;
-      font-size: 13px;
+      border: 1px solid var(--card-border);
     }
     th, td {
       padding: 10px 14px;
       text-align: left;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--card-border);
     }
     th {
-      background: rgba(255,255,255,0.05);
       font-weight: 600;
+      opacity: 0.7;
+      background: rgba(255, 255, 255, 0.02);
     }
+    tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .f-1 { background: rgba(126, 231, 135, 0.15); color: #7ee787; }
+    .f-2 { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .f-3 { background: rgba(227, 179, 65, 0.15); color: #e3b341; }
+    .f-4 { background: rgba(255, 123, 114, 0.15); color: #ff7b72; }
+
+    .tag {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .subtext { font-size: 10px; opacity: 0.6; }
     .problem-link {
-      color: #58a6ff;
+      color: var(--accent-blue);
       text-decoration: none;
       font-weight: 500;
-      cursor: pointer;
     }
     .problem-link:hover {
       text-decoration: underline;
     }
-    .tag {
-      background: rgba(255,255,255,0.08);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-    }
-    .badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .f-1 { background: rgba(56, 138, 52, 0.25); color: #7ee787; }
-    .f-2 { background: rgba(0, 122, 204, 0.25); color: #79c0ff; }
-    .f-3 { background: rgba(204, 167, 0, 0.25); color: #e3b341; }
-    .f-4 { background: rgba(229, 20, 0, 0.25); color: #ff7b72; }
+
     .btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 8px 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-color);
+      padding: 8px 14px;
       border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn:hover { background: var(--accent-hover); }
-    .btn-danger { background: var(--danger); }
-    .btn-danger:hover { background: var(--danger-hover); }
-    .btn-secondary {
-      background: rgba(255,255,255,0.1);
-      color: var(--fg);
-    }
-    .btn-secondary:hover { background: rgba(255,255,255,0.15); }
-    .danger-zone {
-      border: 1px solid rgba(229, 20, 0, 0.4);
-      background: rgba(229, 20, 0, 0.05);
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 20px;
-    }
-    .danger-header {
-      color: #ff7b72;
-      font-weight: 700;
-      font-size: 15px;
-      margin-bottom: 8px;
-    }
-    .danger-desc {
-      font-size: 13px;
-      opacity: 0.8;
-      margin-bottom: 16px;
-    }
-    .action-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .subtext {
-      font-size: 11px;
-      opacity: 0.6;
-    }
-    .date-col {
       font-size: 12px;
-      opacity: 0.7;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .empty-state {
-      padding: 30px;
-      text-align: center;
-      opacity: 0.6;
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .btn-danger {
+      color: var(--accent-red);
+      border-color: rgba(255, 123, 114, 0.4);
+    }
+    .btn-danger:hover {
+      background: rgba(255, 123, 114, 0.1);
     }
   </style>
 </head>
 <body>
-
   <div class="header">
-    <h1>🐻 LeetFlow Console & Control Center</h1>
-    <div class="action-row">
-      <button class="btn btn-secondary" onclick="exportData()">💾 Export Backup</button>
-      <button class="btn btn-secondary" onclick="importData()">📥 Import Backup</button>
+    <div>
+      <h1>⚡ LeetFlow Performance & Control Console</h1>
+      <div class="tagline">Deliberate Practice Telemetry & Local Session Management</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn" onclick="exportData()">Export Backup</button>
+      <button class="btn" onclick="importData()">Restore Backup</button>
     </div>
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('analytics')">📊 Telemetry & Mastery</button>
+    <button class="tab-btn active" onclick="switchTab('analytics')">📊 Telemetry & Proficiency</button>
     <button class="tab-btn" onclick="switchTab('history')">📜 Attempt History (${stats.attempts.length})</button>
     <button class="tab-btn" onclick="switchTab('danger')">⚙️ Data Management</button>
   </div>
 
   <!-- TAB 1: ANALYTICS -->
   <div id="tab-analytics" class="tab-content active">
-    <div class="card hero-grade-card" style="margin-bottom: 20px; border-left: 6px solid #a371f7; background: rgba(163, 113, 247, 0.08);">
+    <!-- Hero Card -->
+    <div class="card hero-grade-card" style="margin-bottom: 20px; border-left: 6px solid #38bdf8; background: rgba(56, 189, 248, 0.06);">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <div class="card-title" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Overall Interview Readiness</div>
+          <div class="card-title" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Unified Interview Readiness</div>
           <div style="font-size: 32px; font-weight: 700; color: #fff; margin: 4px 0;">
-            Grade: <span style="color: #a371f7;">${stats.trend.overallGrade}</span>
-            <span style="font-size: 20px; font-weight: 400; color: #8b949e; margin-left: 8px;">(${stats.trend.overallMasteryPct}% Global Mastery)</span>
+            Grade: <span style="color: #38bdf8;">${stats.trend.grade}</span>
+            <span style="font-size: 20px; font-weight: 400; color: #8b949e; margin-left: 8px;">(${stats.trend.readinessPct}% Global Readiness)</span>
           </div>
-          <div class="card-subtext" style="font-size: 12px;">Based on difficulty coverage, solve speed, and cognitive friction across all patterns</div>
+          <div class="card-subtext" style="font-size: 12px;">Calibrated continuously from problem difficulty, solve speed, and recall friction</div>
         </div>
         <div style="text-align: right;">
           <div style="font-size: 24px;">🔥 ${stats.trend.streakDays} Day Streak</div>
@@ -464,6 +466,7 @@ export class LeetFlowConsoleWebview {
       </div>
     </div>
 
+    <!-- 4 Metrics Row -->
     <div class="grid">
       <div class="card">
         <div class="card-title">Total Solved</div>
@@ -487,6 +490,48 @@ export class LeetFlowConsoleWebview {
       </div>
     </div>
 
+    <!-- RADAR CHART SECTION -->
+    <div class="section-title">🕸 Top 6 LeetCode Topic Composition & Performance Radar</div>
+    <div class="card" style="margin-bottom: 24px; padding: 20px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: center;">
+        <div style="text-align: center;">
+          ${radarSvg}
+        </div>
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; margin-bottom: 10px;">
+            Active Top Domains
+          </div>
+          ${radarTopicRows}
+        </div>
+      </div>
+    </div>
+
+    <!-- Difficulty & Review Health -->
+    <div class="section-title">Difficulty Distribution & Review Health</div>
+    <div class="grid">
+      <div class="card" style="border-left: 4px solid #7ee787;">
+        <div class="card-title">🟢 Easy Problems</div>
+        <div class="card-value">${stats.trend.easySolved}</div>
+        <div class="card-subtext">Foundations solid</div>
+      </div>
+      <div class="card" style="border-left: 4px solid #e3b341;">
+        <div class="card-title">🟡 Medium Problems</div>
+        <div class="card-value">${stats.trend.mediumSolved}</div>
+        <div class="card-subtext">Core interview standard</div>
+      </div>
+      <div class="card" style="border-left: 4px solid #ff7b72;">
+        <div class="card-title">🔴 Hard Problems</div>
+        <div class="card-value">${stats.trend.hardSolved}</div>
+        <div class="card-subtext">Advanced edge patterns</div>
+      </div>
+      <div class="card" style="border-left: 4px solid #38bdf8;">
+        <div class="card-title">⏱ Due SM-2 Reviews</div>
+        <div class="card-value">${stats.dueReviewsCount}</div>
+        <div class="card-subtext">Scheduled for spaced recall</div>
+      </div>
+    </div>
+
+    <!-- Cognitive Friction Breakdown -->
     <div class="section-title">Cognitive Friction Distribution</div>
     <div class="grid">
       <div class="card" style="border-left: 4px solid #7ee787;">
@@ -494,7 +539,7 @@ export class LeetFlowConsoleWebview {
         <div class="card-value">${stats.frictionBreakdown.trivial}</div>
         <div class="card-subtext">Autopilot solves</div>
       </div>
-      <div class="card" style="border-left: 4px solid #79c0ff;">
+      <div class="card" style="border-left: 4px solid #38bdf8;">
         <div class="card-title">2 - Smooth</div>
         <div class="card-value">${stats.frictionBreakdown.smooth}</div>
         <div class="card-subtext">Solid understanding</div>
@@ -510,11 +555,6 @@ export class LeetFlowConsoleWebview {
         <div class="card-subtext">Looked up answer</div>
       </div>
     </div>
-
-    <div class="section-title">Topic Mastery & Skill Ratings</div>
-    <div class="mastery-grid">
-      ${masteryRows || "<div class='empty-state'>No topic mastery recorded yet. Start solving problems to calibrate your Elo!</div>"}
-    </div>
   </div>
 
   <!-- TAB 2: ATTEMPT HISTORY -->
@@ -528,7 +568,7 @@ export class LeetFlowConsoleWebview {
           <tr>
             <th>#</th>
             <th>Problem</th>
-            <th>Topic</th>
+            <th>Difficulty</th>
             <th>Duration</th>
             <th>Friction</th>
             <th>Mode</th>
@@ -550,25 +590,27 @@ export class LeetFlowConsoleWebview {
 
   <!-- TAB 3: DATA MANAGEMENT -->
   <div id="tab-danger" class="tab-content">
-    <div class="card" style="margin-bottom: 20px;">
-      <div class="section-title" style="margin-top: 0;">Backup & Portable Storage</div>
-      <p style="font-size: 13px; opacity: 0.8;">Export your attempt history and topic ratings to a JSON file to transfer between machines or backup your progress.</p>
-      <div class="action-row">
-        <button class="btn btn-secondary" onclick="exportData()">💾 Export History to JSON</button>
-        <button class="btn btn-secondary" onclick="importData()">📥 Restore from Backup JSON</button>
+    <div class="section-title">Data Sovereignty & Local Workspaces</div>
+    
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-title">JSON Telemetry Backup & Restore</div>
+      <div class="card-subtext" style="margin-bottom: 12px;">Export all problem solve history and readiness stats to a portable JSON file, or restore from a previous backup.</div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn" onclick="exportData()">Export Backup (.json)</button>
+        <button class="btn" onclick="importData()">Import & Restore (.json)</button>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;">
-      <div class="section-title" style="margin-top: 0;">Workspace Cache Cleanup</div>
-      <p style="font-size: 13px; opacity: 0.8;">Purge temporary cached problem folders in <code>~/.leetflow/workspace</code> to save disk space without losing your solve telemetry.</p>
-      <button class="btn btn-secondary" onclick="purgeWorkspace()">🧹 Purge Workspace Cache</button>
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-title">Purge Solution Workspace Directory</div>
+      <div class="card-subtext" style="margin-bottom: 12px;">Deletes cached scratch directories in ~/.leetflow/workspace to free local disk space while preserving all metrics.</div>
+      <button class="btn btn-danger" onclick="purgeWorkspace()">Purge ~/.leetflow/workspace</button>
     </div>
 
-    <div class="danger-zone">
-      <div class="danger-header">⚠️ Danger Zone: Reset Practice Progress</div>
-      <div class="danger-desc">Permanently wipe all problem attempts, zero-shot rates, and topic Elo ratings back to default baseline (1200 Elo). This action cannot be undone unless you have exported a JSON backup.</div>
-      <button class="btn btn-danger" onclick="resetHistory()">🔥 Reset All History & Telemetry</button>
+    <div class="card">
+      <div class="card-title">Reset All LeetFlow Telemetry</div>
+      <div class="card-subtext" style="margin-bottom: 12px;">Permanently wipe all problem attempts, zero-shot rates, and readiness score back to 0%. This action cannot be undone unless you have exported a JSON backup.</div>
+      <button class="btn btn-danger" onclick="resetAll()">Reset All Telemetry & Attempts</button>
     </div>
   </div>
 
@@ -576,38 +618,20 @@ export class LeetFlowConsoleWebview {
     const vscode = acquireVsCodeApi();
 
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       
-      const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabId));
-      if (targetBtn) targetBtn.classList.add('active');
-      
-      const targetContent = document.getElementById('tab-' + tabId);
-      if (targetContent) targetContent.classList.add('active');
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
     }
 
-    function resetHistory() {
-      vscode.postMessage({ command: "resetHistory" });
-    }
-
-    function exportData() {
-      vscode.postMessage({ command: "exportData" });
-    }
-
-    function importData() {
-      vscode.postMessage({ command: "importData" });
-    }
-
-    function purgeWorkspace() {
-      vscode.postMessage({ command: "purgeWorkspace" });
-    }
-
-    function startProblem(slug) {
-      vscode.postMessage({ command: "startProblem", slug });
-    }
+    function exportData() { vscode.postMessage({ command: 'exportData' }); }
+    function importData() { vscode.postMessage({ command: 'importData' }); }
+    function resetAll() { vscode.postMessage({ command: 'resetAll' }); }
+    function purgeWorkspace() { vscode.postMessage({ command: 'purgeWorkspace' }); }
+    function startProblem(slug) { vscode.postMessage({ command: 'startProblem', slug: slug }); }
   </script>
 </body>
-</html>
-`;
+</html>`;
   }
 }
