@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 2. Register Status Bar Stopwatch
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
-  statusBarItem.command = "leetflow.stats";
+  statusBarItem.command = "leetflow.toggleTimer";
   context.subscriptions.push(statusBarItem);
 
   // 3. Register Command: Next Recommended Problem
@@ -310,6 +310,21 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // 14. Register Command: Pause / Resume Stopwatch Timer
+  const toggleTimerCmd = vscode.commands.registerCommand("leetflow.toggleTimer", () => {
+    if (!session.hasActiveSession()) {
+      vscode.window.showInformationMessage("No active LeetFlow problem session.");
+      return;
+    }
+    const isPaused = session.togglePause();
+    updateTimerDisplay();
+    if (isPaused) {
+      vscode.window.showInformationMessage("⏸ LeetFlow timer paused. Click status bar to resume.");
+    } else {
+      vscode.window.showInformationMessage("▶ LeetFlow timer resumed.");
+    }
+  });
+
   context.subscriptions.push(
     nextCmd,
     startCmd,
@@ -322,6 +337,7 @@ export function activate(context: vscode.ExtensionContext) {
     openProblemCmd,
     consoleCmd,
     switchTrackCmd,
+    toggleTimerCmd,
   );
 }
 
@@ -380,17 +396,30 @@ async function startProblemSession(
   );
 }
 
-function startTimer(title: string) {
+function updateTimerDisplay() {
+  if (!session.currentProblem) return;
+  const elapsedSec = session.getElapsedSec();
+  const m = Math.floor(elapsedSec / 60);
+  const s = elapsedSec % 60;
+  const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const title = session.currentProblem.title;
+
+  if (session.isPaused) {
+    statusBarItem.text = `$(debug-pause) LeetFlow: ⏸ ${timeStr} (PAUSED) | ${title}`;
+    statusBarItem.tooltip = "Click to Resume Timer";
+  } else {
+    statusBarItem.text = `$(pulse) LeetFlow: ⏱ ${timeStr} | ${title}`;
+    statusBarItem.tooltip = "Click to Pause Timer";
+  }
+}
+
+function startTimer(_title: string) {
   stopTimer();
-  statusBarItem.text = `$(pulse) LeetFlow: ⏱ 00:00 | ${title}`;
-  statusBarItem.tooltip = "Click to open LeetFlow Telemetry & Performance Dashboard";
+  updateTimerDisplay();
   statusBarItem.show();
 
   timerInterval = setInterval(() => {
-    const elapsedSec = Math.floor((Date.now() - session.sessionStartTime) / 1000);
-    const m = Math.floor(elapsedSec / 60);
-    const s = elapsedSec % 60;
-    statusBarItem.text = `$(pulse) LeetFlow: ⏱ ${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} | ${title}`;
+    updateTimerDisplay();
   }, 1000);
 }
 

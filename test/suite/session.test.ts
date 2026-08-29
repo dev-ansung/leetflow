@@ -31,7 +31,6 @@ describe("SessionManager Lifecycle & Telemetry Suite", () => {
     expect(sm.hasActiveSession()).toBe(true);
     expect(sm.currentProblem?.title).toBe("Two Sum");
 
-    // Wait a brief tick
     await new Promise((r) => setTimeout(r, 50));
     sm.recordFirstRun();
 
@@ -42,5 +41,27 @@ describe("SessionManager Lifecycle & Telemetry Suite", () => {
     sm.clear();
     expect(sm.hasActiveSession()).toBe(false);
     expect(sm.currentProblem).toBeUndefined();
+  });
+
+  it("should pause and resume stopwatch correctly", async () => {
+    const sm = new SessionManager();
+    sm.startSession(dummyProblem);
+
+    expect(sm.isPaused).toBe(false);
+
+    // Pause timer
+    const isPaused = sm.togglePause();
+    expect(isPaused).toBe(true);
+    expect(sm.isPaused).toBe(true);
+
+    const pausedSec = sm.getElapsedSec();
+    await new Promise((r) => setTimeout(r, 60));
+    // Time should not advance while paused
+    expect(sm.getElapsedSec()).toBe(pausedSec);
+
+    // Resume timer
+    const resumedState = sm.togglePause();
+    expect(resumedState).toBe(false);
+    expect(sm.isPaused).toBe(false);
   });
 });

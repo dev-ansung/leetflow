@@ -76,6 +76,12 @@
         "title": "LeetFlow: Switch Active Roadmap Track...",
         "category": "LeetFlow",
         "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "leetflow.toggleTimer",
+        "title": "LeetFlow: Pause / Resume Stopwatch Timer",
+        "category": "LeetFlow",
+        "icon": "$(debug-pause)"
       }
     ],
     "viewsContainers": {
