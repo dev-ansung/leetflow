@@ -7,13 +7,14 @@ import { LeetCodeProvider } from "./providers/leetcode";
 import { RunnerFactory } from "./runners/runner-factory";
 import { type StorageAdapter, StorageManager } from "./storage/storage-manager";
 import type { Problem } from "./types";
+import { LeetFlowStatsTreeProvider } from "./views/stats-treeview";
 import { LeetFlowStatsWebview } from "./views/stats-webview";
 import { LeetFlowTracksProvider } from "./views/treeview";
 import { LeetFlowWebview } from "./views/webview";
 
 let currentProblem: Problem | undefined;
-let sessionStartTime: number = 0;
-let firstRunTime: number = 0;
+let sessionStartTime = 0;
+let firstRunTime = 0;
 let statusBarItem: vscode.StatusBarItem;
 let timerInterval: NodeJS.Timeout | undefined;
 let storage: StorageManager;
@@ -35,9 +36,12 @@ export function activate(context: vscode.ExtensionContext) {
   storage = new StorageManager(new VSCodeGlobalStateAdapter(context.globalState));
   recommender = new RecommendationEngine(storage);
 
-  // 1. Register Sidebar TreeView
+  // 1. Register Sidebar TreeViews
   const tracksProvider = new LeetFlowTracksProvider(storage);
   vscode.window.registerTreeDataProvider("leetflow.tracksView", tracksProvider);
+
+  const statsTreeProvider = new LeetFlowStatsTreeProvider(storage);
+  vscode.window.registerTreeDataProvider("leetflow.statsView", statsTreeProvider);
 
   // 2. Register Status Bar Stopwatch
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -47,14 +51,14 @@ export function activate(context: vscode.ExtensionContext) {
   // 3. Register Command: Next Recommended Problem
   const nextCmd = vscode.commands.registerCommand("leetflow.next", async () => {
     const rec = await recommender.recommendNext();
-    await startProblemSession(rec.slug, context, tracksProvider);
+    await startProblemSession(rec.slug, context, tracksProvider, statsTreeProvider);
   });
 
   // 4. Register Command: Start Specific Problem
   const startCmd = vscode.commands.registerCommand(
     "leetflow.startProblem",
     async (slug: string) => {
-      await startProblemSession(slug, context, tracksProvider);
+      await startProblemSession(slug, context, tracksProvider, statsTreeProvider);
     },
   );
 
@@ -84,8 +88,8 @@ export function activate(context: vscode.ExtensionContext) {
           const runner = RunnerFactory.getRunner(doc.fileName);
           const result = await runner.runTests(
             doc.fileName,
-            currentProblem?.functionName,
-            currentProblem?.testCases,
+            currentProblem?.functionName || "",
+            currentProblem?.testCases || [],
           );
 
           LeetFlowWebview.updateTestResults(result);
@@ -174,6 +178,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     stopTimer();
     tracksProvider.refresh();
+    statsTreeProvider.refresh();
 
     vscode.window.showInformationMessage(
       `🎉 Problem Solved in ${durationMin}m! ${topic} Elo: ${newElo} (${delta >= 0 ? "+" : ""}${delta}). Next review scheduled in ${nextIntervalDays} days.`,
@@ -188,7 +193,7 @@ export function activate(context: vscode.ExtensionContext) {
   // 8. Register Command: Review Due Problem
   const reviewCmd = vscode.commands.registerCommand("leetflow.review", async () => {
     const rec = await recommender.recommendNext();
-    await startProblemSession(rec.slug, context, tracksProvider);
+    await startProblemSession(rec.slug, context, tracksProvider, statsTreeProvider);
   });
 
   context.subscriptions.push(nextCmd, startCmd, testCmd, submitCmd, statsCmd, reviewCmd);
@@ -198,6 +203,7 @@ async function startProblemSession(
   slug: string,
   _context: vscode.ExtensionContext,
   tracksProvider?: LeetFlowTracksProvider,
+  statsTreeProvider?: LeetFlowStatsTreeProvider,
 ) {
   await vscode.window.withProgress(
     {
@@ -230,6 +236,7 @@ async function startProblemSession(
 
         startTimer(problem.title);
         if (tracksProvider) tracksProvider.refresh();
+        if (statsTreeProvider) statsTreeProvider.refresh();
 
         vscode.window.showInformationMessage(
           `Started #${problem.id} ${problem.title}. Press Run Tests in editor title bar when ready!`,
