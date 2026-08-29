@@ -1,8 +1,11 @@
 src/**
 test/**
 .git/**
+.github/**
 .gitignore
 tsconfig.json
+biome.json
 artifacts/**
 node_modules/**
 *.vsix
+.DS_Store
