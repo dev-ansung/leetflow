@@ -2,7 +2,7 @@
   "name": "leetflow",
   "displayName": "LeetFlow",
   "description": "Intelligent, adaptive LeetCode practice companion with local test runners and spaced repetition.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "dev-ansung",
   "engines": {
     "vscode": "^1.85.0"
