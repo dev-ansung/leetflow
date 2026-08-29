@@ -405,11 +405,11 @@ function updateTimerDisplay() {
   const title = session.currentProblem.title;
 
   if (session.isPaused) {
-    statusBarItem.text = `$(debug-pause) LeetFlow: ⏸ ${timeStr} (PAUSED) | ${title}`;
-    statusBarItem.tooltip = "Click to Resume Timer";
+    statusBarItem.text = `$(debug-pause) LeetFlow: ⏸ ${timeStr} (PAUSED)`;
+    statusBarItem.tooltip = `${title} · Click to Resume Timer`;
   } else {
-    statusBarItem.text = `$(pulse) LeetFlow: ⏱ ${timeStr} | ${title}`;
-    statusBarItem.tooltip = "Click to Pause Timer";
+    statusBarItem.text = `$(pulse) LeetFlow: ⏱ ${timeStr}`;
+    statusBarItem.tooltip = `${title} · Click to Pause Timer`;
   }
 }
 
