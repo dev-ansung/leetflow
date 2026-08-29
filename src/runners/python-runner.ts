@@ -1,11 +1,24 @@
-
 import * as cp from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { TestCase, TestResult, CaseResult } from "../types";
+import { CodeRunner } from "./runner-interface";
 
-export class PythonRunner {
+export class PythonRunner implements CodeRunner {
+  readonly language = "python";
+  readonly fileExtension = ".py";
+
   static async runTests(
+    solutionPath: string,
+    functionName: string,
+    testCases: TestCase[],
+    timeoutMs: number = 4000
+  ): Promise<TestResult> {
+    const runner = new PythonRunner();
+    return runner.runTests(solutionPath, functionName, testCases, timeoutMs);
+  }
+
+  async runTests(
     solutionPath: string,
     functionName: string,
     testCases: TestCase[],
@@ -27,14 +40,12 @@ def deep_equal(a, b):
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return False
-        # Allow unordered comparison if problem permits, or strict
         return all(deep_equal(x, y) for x, y in zip(a, b))
     return False
 
 def run_all():
     cases = json.loads(${JSON.stringify(casesJson)})
     
-    # Dynamically load solution module
     spec = importlib.util.spec_from_file_location("solution", ${JSON.stringify(solutionPath)})
     if spec is None or spec.loader is None:
         print(json.dumps({"error": "Failed to load solution module"}))
@@ -54,7 +65,6 @@ def run_all():
     sol_instance = mod.Solution()
     fn = getattr(sol_instance, ${JSON.stringify(functionName)}, None)
     if fn is None:
-        # Fallback to first non-dunder callable
         methods = [m for m in dir(sol_instance) if not m.startswith("_") and callable(getattr(sol_instance, m))]
         if methods:
             fn = getattr(sol_instance, methods[0])
@@ -83,7 +93,7 @@ def run_all():
             if expected is not None:
                 passed = deep_equal(actual, expected)
             else:
-                passed = True  # If no expected output, execution without error passes
+                passed = True
         except Exception as e:
             duration_ms = (time.perf_counter() - start) * 1000.0
             err_msg = f"{type(e).__name__}: {str(e)}"
@@ -205,13 +215,11 @@ if __name__ == "__main__":
     });
   }
 
-  private static cleanup(filePath: string) {
+  private cleanup(filePath: string) {
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 }
