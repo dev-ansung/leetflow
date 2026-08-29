@@ -56,7 +56,7 @@ export class LeetCodeProvider {
       // If locked/paid, fallback to doocs mirror
       if (q.isPaidOnly || !q.content) {
         return await LeetCodeProvider.fetchFromMirror(
-          q.questionFrontendId,
+          parseInt(q.questionFrontendId, 10),
           titleSlug,
           q.title,
           q.difficulty,
@@ -98,7 +98,7 @@ export class LeetCodeProvider {
       topics,
       descriptionHtml: q.content,
       starterCode: PythonModernizer.modernize(pySnippet),
-      functionName: meta.name,
+      functionName: PythonModernizer.camelToSnake(meta.name),
       params: meta.params,
       testCases,
       hints: q.hints || [],
@@ -130,22 +130,91 @@ export class LeetCodeProvider {
       const lines = rawList[i].trim().split("\n");
       const inputArgs: Record<string, any> = {};
 
-      for (let j = 0; j < params.length; j++) {
-        const pName = params[j]?.name || `arg${j}`;
-        const line = lines[j] ?? "";
-        try {
-          inputArgs[pName] = JSON.parse(line);
-        } catch {
-          inputArgs[pName] = line;
+      for (let pIdx = 0; pIdx < params.length; pIdx++) {
+        const paramName = params[pIdx]?.name || `arg${pIdx}`;
+        const rawVal = lines[pIdx];
+
+        if (rawVal !== undefined) {
+          try {
+            inputArgs[paramName] = JSON.parse(rawVal);
+          } catch {
+            inputArgs[paramName] = rawVal;
+          }
         }
       }
 
       cases.push({
         id: i + 1,
         input: inputArgs,
-        expected: expectedOutputs[i] ?? null,
-        rawInput: rawList[i],
+        expected: expectedOutputs[i] !== undefined ? expectedOutputs[i] : null,
       });
+    }
+
+    if (cases.length === 0) {
+      cases.push({
+        id: 1,
+        input: {},
+        expected: null,
+      });
+    }
+
+    return cases;
+  }
+
+  private static parseMarkdownTestCases(content: string): TestCase[] {
+    const cases: TestCase[] = [];
+    const unescaped = content
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+
+    const preRegex = /<pre>[\s\S]*?<\/pre>/gi;
+    const blocks = unescaped.match(preRegex) || [];
+
+    let caseId = 1;
+    for (const block of blocks) {
+      const inMatch =
+        block.match(/<strong>Input:?<\/strong>[\s]*([^\n\r<]+)/i) ||
+        block.match(/Input:?[\s]*([^\n\r<]+)/i);
+      const outMatch =
+        block.match(/<strong>Output:?<\/strong>[\s]*([^\n\r<]+)/i) ||
+        block.match(/Output:?[\s]*([^\n\r<]+)/i);
+
+      if (inMatch) {
+        const inStr = inMatch[1].trim();
+        const inputArgs: Record<string, any> = {};
+
+        const paramMatches = inStr.matchAll(
+          /([a-zA-Z0-9_]+)\s*=\s*(\[[^\]]*\]|\{[^}]*\}|"[^"]*"|'[^']*'|-?\d+(?:\.\d+)?|true|false|null)/gi,
+        );
+        for (const m of paramMatches) {
+          try {
+            inputArgs[m[1]] = JSON.parse(m[2].replace(/'/g, '"'));
+          } catch {
+            inputArgs[m[1]] = m[2];
+          }
+        }
+
+        let expected: any = null;
+        if (outMatch) {
+          const outStr = outMatch[1].trim().replace(/<[^>]+>/g, "");
+          try {
+            expected = JSON.parse(outStr.replace(/'/g, '"'));
+          } catch {
+            expected = outStr;
+          }
+        }
+
+        if (Object.keys(inputArgs).length > 0) {
+          cases.push({
+            id: caseId++,
+            input: inputArgs,
+            expected,
+          });
+        }
+      }
     }
 
     if (cases.length === 0) {
@@ -170,7 +239,7 @@ export class LeetCodeProvider {
     const folderEnd = folderStart + 99;
     const folderRange = `${String(folderStart).padStart(4, "0")}-${String(folderEnd).padStart(4, "0")}`;
 
-    const cleanTitle = title.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\\s+/g, "%20");
+    const cleanTitle = title.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "%20");
     const mirrorUrl = `https://raw.githubusercontent.com/doocs/leetcode/main/solution/${folderRange}/${formattedId}.${cleanTitle}/README_EN.md`;
 
     try {
@@ -186,9 +255,27 @@ export class LeetCodeProvider {
 
       const pyRegex = /```python([\s\S]*?)```/;
       const pyMatch = md.match(pyRegex);
-      const starterCode = pyMatch
-        ? pyMatch[1].trim()
-        : `class Solution:\n    def solve(self):\n        pass\n`;
+      const fullPySolution = pyMatch ? pyMatch[1].trim() : "";
+
+      // Extract function signature from solution code
+      let functionName = "solve";
+      let starterCode = "class Solution:\n    def solve(self):\n        pass\n";
+
+      if (fullPySolution) {
+        const sigMatch = fullPySolution.match(
+          /(def\s+([a-zA-Z0-9_]+)\s*\([^)]*\)\s*(?:->\s*[^:]+)?\s*:)/,
+        );
+        if (sigMatch) {
+          const rawFnName = sigMatch[2];
+          functionName = PythonModernizer.camelToSnake(rawFnName);
+          const rawStarter = `class Solution:\n    ${sigMatch[1]}\n        pass\n`;
+          starterCode = PythonModernizer.modernize(rawStarter);
+        } else {
+          starterCode = PythonModernizer.modernize(fullPySolution);
+        }
+      }
+
+      const testCases = LeetCodeProvider.parseMarkdownTestCases(descHtml);
 
       return {
         id: id || 1,
@@ -198,9 +285,9 @@ export class LeetCodeProvider {
         topics: ["Algorithms"],
         descriptionHtml: descHtml,
         starterCode,
-        functionName: "solution",
+        functionName,
         params: [],
-        testCases: [{ id: 1, input: {}, expected: null }],
+        testCases,
         hints: [],
         targetTimeSeconds: 1500,
       };
@@ -212,7 +299,7 @@ export class LeetCodeProvider {
         difficulty: "Medium",
         topics: ["Algorithms"],
         descriptionHtml: `<h3>${title}</h3><p>Problem details retrieved for practice.</p>`,
-        starterCode: `class Solution:\n    def solve(self):\n        pass\n`,
+        starterCode: "class Solution:\n    def solve(self):\n        pass\n",
         functionName: "solve",
         params: [],
         testCases: [{ id: 1, input: {}, expected: null }],
@@ -222,99 +309,3 @@ export class LeetCodeProvider {
     }
   }
 }
-
-export const BLIND_75_SEED = [
-  { id: 1, slug: "two-sum", title: "Two Sum", difficulty: "Easy", topic: "Array & Hash Table" },
-  {
-    id: 217,
-    slug: "contains-duplicate",
-    title: "Contains Duplicate",
-    difficulty: "Easy",
-    topic: "Array & Hash Table",
-  },
-  {
-    id: 242,
-    slug: "valid-anagram",
-    title: "Valid Anagram",
-    difficulty: "Easy",
-    topic: "Array & Hash Table",
-  },
-  {
-    id: 121,
-    slug: "best-time-to-buy-and-sell-stock",
-    title: "Best Time to Buy and Sell Stock",
-    difficulty: "Easy",
-    topic: "Sliding Window",
-  },
-  { id: 15, slug: "3sum", title: "3Sum", difficulty: "Medium", topic: "Two Pointers" },
-  {
-    id: 206,
-    slug: "reverse-linked-list",
-    title: "Reverse Linked List",
-    difficulty: "Easy",
-    topic: "Linked List",
-  },
-  {
-    id: 141,
-    slug: "linked-list-cycle",
-    title: "Linked List Cycle",
-    difficulty: "Easy",
-    topic: "Linked List",
-  },
-  {
-    id: 226,
-    slug: "invert-binary-tree",
-    title: "Invert Binary Tree",
-    difficulty: "Easy",
-    topic: "Binary Tree",
-  },
-  {
-    id: 104,
-    slug: "maximum-depth-of-binary-tree",
-    title: "Maximum Depth of Binary Tree",
-    difficulty: "Easy",
-    topic: "Binary Tree",
-  },
-  {
-    id: 70,
-    slug: "climbing-stairs",
-    title: "Climbing Stairs",
-    difficulty: "Easy",
-    topic: "Dynamic Programming",
-  },
-  {
-    id: 322,
-    slug: "coin-change",
-    title: "Coin Change",
-    difficulty: "Medium",
-    topic: "Dynamic Programming",
-  },
-  {
-    id: 300,
-    slug: "longest-increasing-subsequence",
-    title: "Longest Increasing Subsequence",
-    difficulty: "Medium",
-    topic: "Dynamic Programming",
-  },
-  {
-    id: 200,
-    slug: "number-of-islands",
-    title: "Number of Islands",
-    difficulty: "Medium",
-    topic: "Graph",
-  },
-  {
-    id: 20,
-    slug: "valid-parentheses",
-    title: "Valid Parentheses",
-    difficulty: "Easy",
-    topic: "Stack",
-  },
-  {
-    id: 704,
-    slug: "binary-search",
-    title: "Binary Search",
-    difficulty: "Easy",
-    topic: "Binary Search",
-  },
-];
