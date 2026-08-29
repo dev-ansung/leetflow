@@ -12,7 +12,7 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
   constructor(private storage: StorageManager) {}
 
   refresh(): void {
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -22,8 +22,10 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!element) {
       const stats = await StatsCalculator.computeSummary(this.storage);
-      const b75Pct =
-        stats.blind75Total > 0 ? Math.round((stats.blind75Solved / stats.blind75Total) * 100) : 0;
+      const activePct =
+        stats.activeTrackTotal > 0
+          ? Math.round((stats.activeTrackSolved / stats.activeTrackTotal) * 100)
+          : 0;
 
       const items: vscode.TreeItem[] = [
         this.createItem(
@@ -33,8 +35,8 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
           "check-all",
         ),
         this.createItem(
-          `🔥 Blind 75: ${stats.blind75Solved}/${stats.blind75Total} (${b75Pct}%)`,
-          "b75",
+          `🔥 ${stats.activeTrackName}: ${stats.activeTrackSolved}/${stats.activeTrackTotal} (${activePct}%)`,
+          "active_track",
           vscode.TreeItemCollapsibleState.None,
           "flame",
         ),

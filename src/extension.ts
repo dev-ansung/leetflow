@@ -300,12 +300,12 @@ export function activate(context: vscode.ExtensionContext) {
       placeHolder: "Choose your primary deliberate practice roadmap",
     });
 
-    if (selected && selected.trackId !== activeId) {
+    if (selected) {
       await storage.setActiveTrackId(selected.trackId);
       tracksProvider.refresh();
       statsTreeProvider.refresh();
       vscode.window.showInformationMessage(
-        `🎯 Switched active roadmap to ${selected.label.replace("$(check) ", "")}!`,
+        `🎯 Active roadmap: ${selected.label.replace("$(check) ", "")}!`,
       );
     }
   });

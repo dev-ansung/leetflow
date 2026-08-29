@@ -1,8 +1,11 @@
-import { CURRICULUM_DATASET } from "../data/curriculum";
+import { TrackRegistry } from "../data/track-registry";
 import type { AttemptLog, StorageManager, TopicMasteryState } from "../storage/storage-manager";
 
 export interface SummaryStats {
   totalSolved: number;
+  activeTrackName: string;
+  activeTrackSolved: number;
+  activeTrackTotal: number;
   blind75Solved: number;
   blind75Total: number;
   neetCodeSolved: number;
@@ -27,10 +30,16 @@ export class StatsCalculator {
     const solvedSlugs = new Set(passedAttempts.map((a) => a.slug));
 
     const totalSolved = solvedSlugs.size;
-    const blind75Problems = CURRICULUM_DATASET.filter((p) => p.isBlind75);
+
+    const activeTrackId = await storage.getActiveTrackId();
+    const activeTrack = TrackRegistry.getTrack(activeTrackId);
+    const activeTrackProblems = TrackRegistry.getTrackProblems(activeTrack.id);
+    const activeTrackSolved = activeTrackProblems.filter((p) => solvedSlugs.has(p.slug)).length;
+
+    const blind75Problems = TrackRegistry.getTrackProblems("blind75");
     const blind75Solved = blind75Problems.filter((p) => solvedSlugs.has(p.slug)).length;
 
-    const neetCodeProblems = CURRICULUM_DATASET.filter((p) => p.isNeetCode150);
+    const neetCodeProblems = TrackRegistry.getTrackProblems("neetcode150");
     const neetCodeSolved = neetCodeProblems.filter((p) => solvedSlugs.has(p.slug)).length;
 
     const zeroShotCount = passedAttempts.filter((a) => a.zeroShot).length;
@@ -43,7 +52,8 @@ export class StatsCalculator {
         ? Math.round((totalDuration / passedAttempts.length / 60) * 10) / 10
         : 0;
 
-    const topics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
+    const allProblems = TrackRegistry.getAllUniqueProblems();
+    const topics = Array.from(new Set(allProblems.map((p) => p.topic)));
     const topicMasteries: TopicMasteryState[] = [];
     const dueReviews: { topic: string; daysOverdue: number }[] = [];
     const now = Date.now();
@@ -71,6 +81,9 @@ export class StatsCalculator {
 
     return {
       totalSolved,
+      activeTrackName: activeTrack.name,
+      activeTrackSolved,
+      activeTrackTotal: activeTrackProblems.length,
       blind75Solved,
       blind75Total: blind75Problems.length,
       neetCodeSolved,
