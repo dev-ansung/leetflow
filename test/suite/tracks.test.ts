@@ -15,12 +15,13 @@ describe("Multi-Track Roadmap Architecture Suite", () => {
     expect(ids).toContain("carl200");
   });
 
-  it("should contain exact counts for Blind 75 and NeetCode 25", () => {
-    const b75Problems = TrackRegistry.getTrackProblems("blind75");
-    expect(b75Problems.length).toBe(75);
-
-    const nc25Problems = TrackRegistry.getTrackProblems("neetcode25");
-    expect(nc25Problems.length).toBe(25);
+  it("should contain exact counts for all standard roadmaps", () => {
+    expect(TrackRegistry.getTrackProblems("blind75").length).toBe(75);
+    expect(TrackRegistry.getTrackProblems("grind75").length).toBe(75);
+    expect(TrackRegistry.getTrackProblems("neetcode25").length).toBe(25);
+    expect(TrackRegistry.getTrackProblems("neetcode150").length).toBe(150);
+    expect(TrackRegistry.getTrackProblems("top-interview-150").length).toBe(150);
+    expect(TrackRegistry.getTrackProblems("carl200").length).toBeGreaterThanOrEqual(175);
   });
 
   it("should resolve problem metadata by numeric ID or slug", () => {
@@ -35,7 +36,7 @@ describe("Multi-Track Roadmap Architecture Suite", () => {
 
   it("should extract all unique problems across all roadmaps", () => {
     const unique = TrackRegistry.getAllUniqueProblems();
-    expect(unique.length).toBeGreaterThanOrEqual(150);
+    expect(unique.length).toBeGreaterThanOrEqual(180);
     for (const p of unique) {
       expect(p.id).toBeGreaterThan(0);
       expect(p.slug).toBeTruthy();

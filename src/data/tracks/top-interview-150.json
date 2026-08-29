@@ -1,8 +1,8 @@
 {
   "id": "top-interview-150",
   "name": "Top Interview 150",
-  "description": "Must-do interview questions curated by LeetCode Official",
-  "author": "LeetCode",
+  "description": "Official 150 must-do interview questions curated by LeetCode",
+  "author": "LeetCode Official",
   "version": "1.0.0",
   "categories": [
     {
@@ -737,6 +737,12 @@
           "slug": "merge-k-sorted-lists",
           "title": "Merge k Sorted Lists",
           "difficulty": "Hard"
+        },
+        {
+          "id": 427,
+          "slug": "construct-quad-tree",
+          "title": "Construct Quad Tree",
+          "difficulty": "Medium"
         }
       ]
     },
@@ -995,6 +1001,12 @@
           "slug": "maximal-square",
           "title": "Maximal Square",
           "difficulty": "Medium"
+        },
+        {
+          "id": 87,
+          "slug": "scramble-string",
+          "title": "Scramble String",
+          "difficulty": "Hard"
         }
       ]
     }
