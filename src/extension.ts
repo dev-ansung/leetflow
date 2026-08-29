@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.window.registerTreeDataProvider("leetflow.statsView", statsTreeProvider);
 
   // 2. Register Status Bar Stopwatch
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
   statusBarItem.command = "leetflow.stats";
   context.subscriptions.push(statusBarItem);
 
@@ -337,6 +337,8 @@ async function startProblemSession(
 
 function startTimer(title: string) {
   stopTimer();
+  statusBarItem.text = `$(pulse) LeetFlow: ⏱ 00:00 | ${title}`;
+  statusBarItem.tooltip = "Click to open LeetFlow Telemetry & Performance Dashboard";
   statusBarItem.show();
 
   timerInterval = setInterval(() => {
