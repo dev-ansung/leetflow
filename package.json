@@ -2,7 +2,7 @@
   "name": "leetflow",
   "displayName": "LeetFlow",
   "description": "Intelligent, adaptive LeetCode practice companion with local test runners and spaced repetition.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "publisher": "dev-ansung",
   "engines": {
     "vscode": "^1.85.0"
@@ -99,6 +99,12 @@
         "command": "leetflow.resetProgress",
         "title": "Reset All Progress & Telemetry Data",
         "category": "LeetFlow"
+      },
+      {
+        "command": "leetflow.review",
+        "title": "Review Due Problem",
+        "category": "LeetFlow",
+        "icon": "$(history)"
       }
     ],
     "viewsContainers": {
