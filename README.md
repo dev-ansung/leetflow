@@ -105,7 +105,7 @@ sequenceDiagram
 
 *Or install via terminal:*
 ```bash
-code --install-extension leetflow-0.1.0.vsix --force
+code --install-extension leetflow-1.0.0.vsix --force
 ```
 
 ### Option B: Build from Source
@@ -124,7 +124,7 @@ bun test
 bun run package
 
 # 4. Install into VS Code
-code --install-extension artifacts/vsix/leetflow-0.1.0.vsix --force
+code --install-extension artifacts/vsix/leetflow-1.0.0.vsix --force
 ```
 
 ---
