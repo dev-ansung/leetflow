@@ -38,7 +38,9 @@ export class StatsCalculator {
         : 0;
 
     const curriculumTopics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
-    const attemptTopics = Array.from(new Set(attempts.map((a) => a.topic)));
+    const attemptTopics = Array.from(
+      new Set(attempts.map((a) => TopicNormalizer.normalize(a.slug, [a.topic]))),
+    );
     const allTopics = Array.from(new Set([...curriculumTopics, ...attemptTopics]));
 
     const topicMasteries: TopicMasteryState[] = [];
@@ -47,14 +49,29 @@ export class StatsCalculator {
 
     for (const t of allTopics) {
       const canonTopic = TopicNormalizer.normalize("", [t]);
-      const mastery = await storage.getTopicMastery(canonTopic);
-      if (mastery.solvedCount > 0 && !topicMasteries.some((m) => m.topic === canonTopic)) {
-        topicMasteries.push(mastery);
-        if (mastery.nextReviewDue) {
-          const dueTime = new Date(mastery.nextReviewDue).getTime();
-          if (dueTime <= now) {
-            const daysOverdue = Math.max(0, Math.round((now - dueTime) / (24 * 3600 * 1000)));
-            dueReviews.push({ topic: canonTopic, daysOverdue });
+
+      // Calculate actual solved count from attempts for this canonical topic
+      const topicPassedAttempts = passedAttempts.filter(
+        (a) => TopicNormalizer.normalize(a.slug, [a.topic]) === canonTopic,
+      );
+      const actualSolvedCount = new Set(topicPassedAttempts.map((a) => a.slug)).size;
+
+      if (actualSolvedCount > 0) {
+        const mastery = await storage.getTopicMastery(canonTopic);
+        // Ensure solved count reflects actual history
+        if (mastery.solvedCount < actualSolvedCount) {
+          mastery.solvedCount = actualSolvedCount;
+          await storage.saveTopicMastery(mastery);
+        }
+
+        if (!topicMasteries.some((m) => m.topic === canonTopic)) {
+          topicMasteries.push(mastery);
+          if (mastery.nextReviewDue) {
+            const dueTime = new Date(mastery.nextReviewDue).getTime();
+            if (dueTime <= now) {
+              const daysOverdue = Math.max(0, Math.round((now - dueTime) / (24 * 3600 * 1000)));
+              dueReviews.push({ topic: canonTopic, daysOverdue });
+            }
           }
         }
       }

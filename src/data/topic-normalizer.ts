@@ -48,4 +48,14 @@ export class TopicNormalizer {
 
     return "Algorithms";
   }
+
+  static getLegacyAliases(canonicalTopic: string): string[] {
+    const aliases: string[] = [canonicalTopic];
+    for (const [raw, canon] of Object.entries(TopicNormalizer.ALIAS_MAP)) {
+      if (canon === canonicalTopic && !aliases.includes(raw)) {
+        aliases.push(raw);
+      }
+    }
+    return aliases;
+  }
 }

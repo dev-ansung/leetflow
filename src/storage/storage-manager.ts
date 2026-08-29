@@ -46,23 +46,29 @@ export class StorageManager {
   constructor(private adapter: StorageAdapter) {}
 
   async getTopicMastery(rawTopic: string): Promise<TopicMasteryState> {
-    const topic = TopicNormalizer.normalize("", [rawTopic]);
-    const key = `mastery_${topic}`;
+    const canonicalTopic = TopicNormalizer.normalize("", [rawTopic]);
+    const canonicalKey = `mastery_${canonicalTopic}`;
 
-    let data = await this.adapter.get<TopicMasteryState | null>(key, null);
-    if (!data && topic !== rawTopic) {
-      // Check legacy key
-      const legacyKey = `mastery_${rawTopic}`;
-      data = await this.adapter.get<TopicMasteryState | null>(legacyKey, null);
-      if (data) {
-        data.topic = topic;
-        await this.adapter.update(key, data);
+    // Check canonical key first
+    let data = await this.adapter.get<TopicMasteryState | null>(canonicalKey, null);
+
+    // If not found, search all legacy aliases
+    if (!data) {
+      const aliases = TopicNormalizer.getLegacyAliases(canonicalTopic);
+      for (const alias of aliases) {
+        const legacyKey = `mastery_${alias}`;
+        const legacyData = await this.adapter.get<TopicMasteryState | null>(legacyKey, null);
+        if (legacyData) {
+          data = { ...legacyData, topic: canonicalTopic };
+          await this.adapter.update(canonicalKey, data);
+          break;
+        }
       }
     }
 
     return (
       data || {
-        topic,
+        topic: canonicalTopic,
         elo: 1200,
         solvedCount: 0,
         lastPracticedAt: "",
@@ -74,15 +80,14 @@ export class StorageManager {
   }
 
   async saveTopicMastery(mastery: TopicMasteryState): Promise<void> {
-    const topic = TopicNormalizer.normalize("", [mastery.topic]);
-    mastery.topic = topic;
-    const key = `mastery_${topic}`;
+    const canonicalTopic = TopicNormalizer.normalize("", [mastery.topic]);
+    mastery.topic = canonicalTopic;
+    const key = `mastery_${canonicalTopic}`;
     await this.adapter.update(key, mastery);
   }
 
   async getAttempts(): Promise<AttemptLog[]> {
     const rawAttempts = await this.adapter.get<AttemptLog[]>("attempts_history", []);
-    // Normalize topics in attempts
     let changed = false;
     for (const a of rawAttempts) {
       const canon = TopicNormalizer.normalize(a.slug, [a.topic]);
