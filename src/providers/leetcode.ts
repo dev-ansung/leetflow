@@ -1,3 +1,4 @@
+import { PythonModernizer } from "../modernizer/python-modernizer";
 import type { Difficulty, Problem, TestCase } from "../types";
 
 export class LeetCodeProvider {
@@ -96,7 +97,7 @@ export class LeetCodeProvider {
       difficulty: diff,
       topics,
       descriptionHtml: q.content,
-      starterCode: pySnippet,
+      starterCode: PythonModernizer.modernize(pySnippet),
       functionName: meta.name,
       params: meta.params,
       testCases,
