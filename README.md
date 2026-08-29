@@ -113,6 +113,8 @@ Never solve 100 problems only to forget how to traverse a graph a month later.
   * **Cognitive Flow Rate**: Tracks the percentage of problems solved with zero/low friction over time.
   * **Average Duration**: Tracks your solving speed against benchmark targets.
 
+👉 *For the complete mathematical formula and grade threshold breakdowns, see the **[Proficiency & Grading Specification (PROFICIENCY.md)](PROFICIENCY.md)**.*
+
 <!-- SCREENSHOT: Proficiency & Telemetry Sidebar -->
 <!-- Placeholder: Close-up of the Proficiency & Telemetry sidebar panel showing Total Solved, Active Roadmap %, Zero-Shot accuracy, Average Duration, and Topic Mastery Elo ratings -->
 
