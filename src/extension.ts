@@ -2,23 +2,41 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { MetricsEngine } from "./core/metrics";
-import { BLIND_75_SEED, LeetCodeProvider } from "./providers/leetcode";
-import { PythonRunner } from "./runners/python-runner";
+import { RecommendationEngine } from "./core/recommender";
+import { LeetCodeProvider } from "./providers/leetcode";
+import { RunnerFactory } from "./runners/runner-factory";
+import { type StorageAdapter, StorageManager } from "./storage/storage-manager";
 import type { Problem } from "./types";
+import { LeetFlowStatsWebview } from "./views/stats-webview";
 import { LeetFlowTracksProvider } from "./views/treeview";
 import { LeetFlowWebview } from "./views/webview";
 
 let currentProblem: Problem | undefined;
 let sessionStartTime: number = 0;
+let firstRunTime: number = 0;
 let statusBarItem: vscode.StatusBarItem;
 let timerInterval: NodeJS.Timeout | undefined;
+let storage: StorageManager;
+let recommender: RecommendationEngine;
+
+class VSCodeGlobalStateAdapter implements StorageAdapter {
+  constructor(private state: vscode.Memento) {}
+  async get<T>(key: string, defaultValue: T): Promise<T> {
+    return this.state.get<T>(key, defaultValue);
+  }
+  async update<T>(key: string, value: T): Promise<void> {
+    await this.state.update(key, value);
+  }
+}
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("LeetFlow extension activated.");
 
+  storage = new StorageManager(new VSCodeGlobalStateAdapter(context.globalState));
+  recommender = new RecommendationEngine(storage);
+
   // 1. Register Sidebar TreeView
-  const tracksProvider = new LeetFlowTracksProvider();
+  const tracksProvider = new LeetFlowTracksProvider(storage);
   vscode.window.registerTreeDataProvider("leetflow.tracksView", tracksProvider);
 
   // 2. Register Status Bar Stopwatch
@@ -28,15 +46,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 3. Register Command: Next Recommended Problem
   const nextCmd = vscode.commands.registerCommand("leetflow.next", async () => {
-    const seed = BLIND_75_SEED[Math.floor(Math.random() * BLIND_75_SEED.length)];
-    await startProblemSession(seed.slug, context);
+    const rec = await recommender.recommendNext();
+    await startProblemSession(rec.slug, context, tracksProvider);
   });
 
   // 4. Register Command: Start Specific Problem
   const startCmd = vscode.commands.registerCommand(
     "leetflow.startProblem",
     async (slug: string) => {
-      await startProblemSession(slug, context);
+      await startProblemSession(slug, context, tracksProvider);
     },
   );
 
@@ -49,12 +67,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const doc = editor.document;
-    if (!doc.fileName.endsWith(".py")) {
-      vscode.window.showWarningMessage("Active file is not a Python solution file.");
-      return;
-    }
-
     await doc.save();
+
+    if (firstRunTime === 0) {
+      firstRunTime = Date.now();
+    }
 
     await vscode.window.withProgress(
       {
@@ -63,22 +80,27 @@ export function activate(context: vscode.ExtensionContext) {
         cancellable: false,
       },
       async () => {
-        const result = await PythonRunner.runTests(
-          doc.fileName,
-          currentProblem?.functionName,
-          currentProblem?.testCases,
-        );
-
-        LeetFlowWebview.updateTestResults(result);
-
-        if (result.allPassed) {
-          vscode.window.showInformationMessage(
-            `✔ All ${result.passedCount} Test Cases Passed in ${result.totalDurationMs}ms!`,
+        try {
+          const runner = RunnerFactory.getRunner(doc.fileName);
+          const result = await runner.runTests(
+            doc.fileName,
+            currentProblem?.functionName,
+            currentProblem?.testCases,
           );
-        } else {
-          vscode.window.showErrorMessage(
-            `✘ Test Failed: ${result.passedCount}/${result.totalCount} passed. Check Webview panel for details.`,
-          );
+
+          LeetFlowWebview.updateTestResults(result);
+
+          if (result.allPassed) {
+            vscode.window.showInformationMessage(
+              `✔ All ${result.passedCount} Test Cases Passed in ${result.totalDurationMs}ms!`,
+            );
+          } else {
+            vscode.window.showErrorMessage(
+              `✘ Test Failed: ${result.passedCount}/${result.totalCount} passed. Check Webview panel for diffs.`,
+            );
+          }
+        } catch (err: any) {
+          vscode.window.showErrorMessage(`Runner error: ${err.message}`);
         }
       },
     );
@@ -94,7 +116,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     await editor.document.save();
 
-    const result = await PythonRunner.runTests(
+    const runner = RunnerFactory.getRunner(editor.document.fileName);
+    const result = await runner.runTests(
       editor.document.fileName,
       currentProblem.functionName,
       currentProblem.testCases,
@@ -111,6 +134,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     const durationSec = Math.round((Date.now() - sessionStartTime) / 1000);
     const durationMin = Math.round(durationSec / 60);
+    const thinkingSec =
+      firstRunTime > 0 ? Math.round((firstRunTime - sessionStartTime) / 1000) : durationSec;
 
     const frictionChoice = await vscode.window.showQuickPick(
       [
@@ -134,42 +159,46 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const ratingVal = (frictionChoice?.value || 2) as 1 | 2 | 3 | 4;
-    const currentElo = context.globalState.get<number>(`elo_${currentProblem.topics[0]}`, 1400);
+    const topic = currentProblem.topics[0] || "Algorithms";
 
-    const { newElo, delta } = MetricsEngine.calculateElo(
-      currentElo,
-      currentProblem.targetTimeSeconds > 2000
-        ? 1900
-        : currentProblem.targetTimeSeconds > 1000
-          ? 1600
-          : 1200,
+    const { newElo, delta, nextIntervalDays } = await storage.recordAttempt({
+      problemId: currentProblem.id,
+      slug: currentProblem.slug,
+      topic,
       durationSec,
-      currentProblem.targetTimeSeconds,
-      true,
-    );
-
-    const { nextIntervalDays } = MetricsEngine.calculateSM2(ratingVal, 1, 1);
-
-    await context.globalState.update(`elo_${currentProblem.topics[0]}`, newElo);
+      targetSec: currentProblem.targetTimeSeconds,
+      thinkingSec,
+      passed: true,
+      frictionRating: ratingVal,
+    });
 
     stopTimer();
+    tracksProvider.refresh();
 
     vscode.window.showInformationMessage(
-      `🎉 Problem Solved in ${durationMin}m! Topic Elo: ${newElo} (${delta >= 0 ? "+" : ""}${delta}). Next review scheduled in ${nextIntervalDays} days.`,
+      `🎉 Problem Solved in ${durationMin}m! ${topic} Elo: ${newElo} (${delta >= 0 ? "+" : ""}${delta}). Next review scheduled in ${nextIntervalDays} days.`,
     );
   });
 
-  // 7. Register Command: View Stats
+  // 7. Register Command: View Stats & Mastery
   const statsCmd = vscode.commands.registerCommand("leetflow.stats", () => {
-    vscode.window.showInformationMessage(
-      "LeetFlow Telemetry: Steady practice! Check Sidebar for topic mastery breakdown.",
-    );
+    LeetFlowStatsWebview.show(storage);
   });
 
-  context.subscriptions.push(nextCmd, startCmd, testCmd, submitCmd, statsCmd);
+  // 8. Register Command: Review Due Problem
+  const reviewCmd = vscode.commands.registerCommand("leetflow.review", async () => {
+    const rec = await recommender.recommendNext();
+    await startProblemSession(rec.slug, context, tracksProvider);
+  });
+
+  context.subscriptions.push(nextCmd, startCmd, testCmd, submitCmd, statsCmd, reviewCmd);
 }
 
-async function startProblemSession(slug: string, _context: vscode.ExtensionContext) {
+async function startProblemSession(
+  slug: string,
+  _context: vscode.ExtensionContext,
+  tracksProvider?: LeetFlowTracksProvider,
+) {
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -180,6 +209,7 @@ async function startProblemSession(slug: string, _context: vscode.ExtensionConte
       try {
         const problem = await LeetCodeProvider.fetchProblem(slug);
         currentProblem = problem;
+        firstRunTime = 0;
 
         const homeDir = os.homedir();
         const wsDir = path.join(homeDir, ".leetflow", "workspace", `${problem.id}-${problem.slug}`);
@@ -199,6 +229,7 @@ async function startProblemSession(slug: string, _context: vscode.ExtensionConte
         LeetFlowWebview.show(problem, vscode.ViewColumn.Beside);
 
         startTimer(problem.title);
+        if (tracksProvider) tracksProvider.refresh();
 
         vscode.window.showInformationMessage(
           `Started #${problem.id} ${problem.title}. Press Run Tests in editor title bar when ready!`,
