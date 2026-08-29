@@ -1,6 +1,6 @@
 # ⚡ LeetFlow: Practice LeetCode Uninterrupted in VS Code
 
-[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
+[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-LeetFlow-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-35%20passing-brightgreen.svg)]()
@@ -82,20 +82,16 @@ Work through industry-standard interview preparation roadmaps with a single clic
 
 ---
 
-### 3. 🐍 Modern Python 3.14+ Standards Out of the Box
-LeetCode default templates are stuck in legacy Python typing. LeetFlow automatically modernizes all problem templates on the fly:
+### 3. 🐍 Modern Python 3.14+ & TypeScript Sandbox Execution
+Practice in your language of choice with zero configuration:
 
-```python
-# Clean, modern Python 3.14 standard
-class Solution:
-    def two_sum(self, nums: list[int], target: int) -> list[int]:
-        pass
-```
-
-* **PEP 8 Compliance**: Converts `camelCase` method names to `snake_case`.
-* **PEP 585 Generics**: Uses built-in collections `list[int]`, `dict[str, int]`, `set[int]`.
-* **PEP 604 Unions**: Clean pipe syntax `TreeNode | None` instead of `Optional[TreeNode]`.
-* **Interpreter Auto-Discovery**: Automatically discovers and prioritizes modern Python 3.14 executables with a quick switch command (`LeetFlow: Select Python Interpreter...`).
+* **Modern Python 3.14 Standards**:
+  * **PEP 8 Compliance**: Converts `camelCase` method names to `snake_case`.
+  * **PEP 585 Generics**: Uses built-in collections `list[int]`, `dict[str, int]`, `set[int]`.
+  * **PEP 604 Unions**: Clean pipe syntax `TreeNode | None` instead of `Optional[TreeNode]`.
+  * **Auto-Discovery**: Automatically prioritizes modern Python 3.14 binaries (`LeetFlow: Select Python Interpreter...`).
+* **TypeScript & JavaScript (via Bun)**:
+  * Instant sub-millisecond local execution of `solution.ts` / `solution.js` with full generic types and sample assertions.
 
 ---
 
