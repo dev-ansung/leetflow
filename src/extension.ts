@@ -3,20 +3,18 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { RecommendationEngine } from "./core/recommender";
+import { SessionManager } from "./core/session-manager";
 import { TopicNormalizer } from "./data/topic-normalizer";
 import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
 import { RunnerFactory } from "./runners/runner-factory";
 import { type StorageAdapter, StorageManager } from "./storage/storage-manager";
-import type { Problem } from "./types";
 import { LeetFlowStatsTreeProvider } from "./views/stats-treeview";
 import { LeetFlowStatsWebview } from "./views/stats-webview";
 import { LeetFlowTracksProvider } from "./views/treeview";
 import { LeetFlowWebview } from "./views/webview";
 
-let currentProblem: Problem | undefined;
-let sessionStartTime = 0;
-let firstRunTime = 0;
+let session: SessionManager;
 let statusBarItem: vscode.StatusBarItem;
 let timerInterval: NodeJS.Timeout | undefined;
 let storage: StorageManager;
@@ -35,6 +33,7 @@ class VSCodeGlobalStateAdapter implements StorageAdapter {
 export function activate(context: vscode.ExtensionContext) {
   console.log("LeetFlow extension activated.");
 
+  session = new SessionManager();
   storage = new StorageManager(new VSCodeGlobalStateAdapter(context.globalState));
   recommender = new RecommendationEngine(storage);
 
@@ -67,17 +66,17 @@ export function activate(context: vscode.ExtensionContext) {
   // 5. Register Command: Run Tests
   const testCmd = vscode.commands.registerCommand("leetflow.test", async () => {
     const editor = vscode.window.activeTextEditor;
-    if (!editor || !currentProblem) {
+    if (!editor || !session.hasActiveSession()) {
       vscode.window.showWarningMessage("No active LeetFlow problem session open.");
       return;
     }
 
     const doc = editor.document;
     await doc.save();
+    session.recordFirstRun();
 
-    if (firstRunTime === 0) {
-      firstRunTime = Date.now();
-    }
+    const problem = session.currentProblem;
+    if (!problem) return;
 
     await vscode.window.withProgress(
       {
@@ -90,8 +89,8 @@ export function activate(context: vscode.ExtensionContext) {
           const runner = RunnerFactory.getRunner(doc.fileName);
           const result = await runner.runTests(
             doc.fileName,
-            currentProblem?.functionName || "",
-            currentProblem?.testCases || [],
+            problem.functionName,
+            problem.testCases,
           );
 
           LeetFlowWebview.updateTestResults(result);
@@ -115,18 +114,20 @@ export function activate(context: vscode.ExtensionContext) {
   // 6. Register Command: Submit Solution
   const submitCmd = vscode.commands.registerCommand("leetflow.submit", async () => {
     const editor = vscode.window.activeTextEditor;
-    if (!editor || !currentProblem) {
+    if (!editor || !session.hasActiveSession()) {
       vscode.window.showWarningMessage("No active LeetFlow problem session open.");
       return;
     }
 
     await editor.document.save();
+    const problem = session.currentProblem;
+    if (!problem) return;
 
     const runner = RunnerFactory.getRunner(editor.document.fileName);
     const result = await runner.runTests(
       editor.document.fileName,
-      currentProblem.functionName,
-      currentProblem.testCases,
+      problem.functionName,
+      problem.testCases,
     );
 
     LeetFlowWebview.updateTestResults(result);
@@ -138,10 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const durationSec = Math.round((Date.now() - sessionStartTime) / 1000);
-    const durationMin = Math.round(durationSec / 60);
-    const thinkingSec =
-      firstRunTime > 0 ? Math.round((firstRunTime - sessionStartTime) / 1000) : durationSec;
+    const { durationSec, durationMin, thinkingSec } = session.getMetrics();
 
     const frictionChoice = await vscode.window.showQuickPick(
       [
@@ -159,26 +157,27 @@ export function activate(context: vscode.ExtensionContext) {
         },
       ],
       {
-        title: `LeetFlow: Rate Cognitive Friction for #${currentProblem.id} ${currentProblem.title}`,
+        title: `LeetFlow: Rate Cognitive Friction for #${problem.id} ${problem.title}`,
         placeHolder: "How did the solve feel?",
       },
     );
 
     const ratingVal = (frictionChoice?.value || 2) as 1 | 2 | 3 | 4;
-    const topic = TopicNormalizer.normalize(currentProblem.slug, currentProblem.topics);
+    const topic = TopicNormalizer.normalize(problem.slug, problem.topics);
 
     const { newElo, delta, nextIntervalDays } = await storage.recordAttempt({
-      problemId: currentProblem.id,
-      slug: currentProblem.slug,
+      problemId: problem.id,
+      slug: problem.slug,
       topic,
       durationSec,
-      targetSec: currentProblem.targetTimeSeconds,
+      targetSec: problem.targetTimeSeconds,
       thinkingSec,
       passed: true,
       frictionRating: ratingVal,
     });
 
     stopTimer();
+    session.clear();
     tracksProvider.refresh();
     statsTreeProvider.refresh();
 
@@ -245,8 +244,7 @@ async function startProblemSession(
     async () => {
       try {
         const problem = await LeetCodeProvider.fetchProblem(slug);
-        currentProblem = problem;
-        firstRunTime = 0;
+        session.startSession(problem);
 
         const homeDir = os.homedir();
         const wsDir = path.join(homeDir, ".leetflow", "workspace", `${problem.id}-${problem.slug}`);
@@ -288,11 +286,10 @@ async function startProblemSession(
 
 function startTimer(title: string) {
   stopTimer();
-  sessionStartTime = Date.now();
   statusBarItem.show();
 
   timerInterval = setInterval(() => {
-    const elapsedSec = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const elapsedSec = Math.floor((Date.now() - session.sessionStartTime) / 1000);
     const m = Math.floor(elapsedSec / 60);
     const s = elapsedSec % 60;
     statusBarItem.text = `$(pulse) LeetFlow: ⏱ ${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} | ${title}`;
