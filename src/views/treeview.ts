@@ -63,15 +63,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       switchItem.command = { command: "leetflow.switchTrack", title: "Switch Roadmap" };
       switchItem.description = activeTrack.name;
 
-      // 4. Console Dashboard
-      const consoleItem = new vscode.TreeItem(
-        "Console & Control Center",
-        vscode.TreeItemCollapsibleState.None,
-      );
-      consoleItem.iconPath = new vscode.ThemeIcon("dashboard");
-      consoleItem.command = { command: "leetflow.console", title: "Open Console" };
-
-      // 5. Active Track Root
+      // 4. Active Track Root
       const activeRoot = new vscode.TreeItem(
         `🎯 ${activeTrack.name}`,
         vscode.TreeItemCollapsibleState.Expanded,
@@ -80,7 +72,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       activeRoot.iconPath = new vscode.ThemeIcon("target");
       activeRoot.description = `${activeSolved}/${activeProblems.length} (${activePct}%)`;
 
-      // 6. All Tracks Folder
+      // 5. All Tracks Folder
       const allTracksRoot = new vscode.TreeItem(
         "📚 All Curated Roadmaps",
         vscode.TreeItemCollapsibleState.Collapsed,
@@ -89,7 +81,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       allTracksRoot.iconPath = new vscode.ThemeIcon("library");
       allTracksRoot.description = `${TrackRegistry.getAllTracks().length} study plans`;
 
-      return [nextItem, openItem, switchItem, consoleItem, activeRoot, allTracksRoot];
+      return [nextItem, openItem, switchItem, activeRoot, allTracksRoot];
     }
 
     // Expanding Active Track
