@@ -1,4 +1,8 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { MetricsEngine } from "../core/metrics";
+import { CURRICULUM_DATASET } from "../data/curriculum";
 import { TopicNormalizer } from "../data/topic-normalizer";
 
 export interface StorageAdapter {
@@ -45,6 +49,13 @@ export interface TopicMasteryState {
   reviewIntervalDays: number;
   nextReviewDue: string;
   repetitionLevel: number;
+}
+
+export interface BackupData {
+  version: string;
+  exportedAt: string;
+  attempts: AttemptLog[];
+  mastery: Record<string, TopicMasteryState>;
 }
 
 export class StorageManager {
@@ -141,5 +152,61 @@ export class StorageManager {
     } else {
       await this.adapter.update("attempts_history", []);
     }
+  }
+
+  async exportAllData(): Promise<string> {
+    const attempts = await this.getAttempts();
+    const topics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
+    const masteryMap: Record<string, TopicMasteryState> = {};
+
+    for (const t of topics) {
+      masteryMap[t] = await this.getTopicMastery(t);
+    }
+
+    const backup: BackupData = {
+      version: "1.0.0",
+      exportedAt: new Date().toISOString(),
+      attempts,
+      mastery: masteryMap,
+    };
+
+    return JSON.stringify(backup, null, 2);
+  }
+
+  async importData(jsonContent: string): Promise<boolean> {
+    try {
+      const parsed: BackupData = JSON.parse(jsonContent);
+      if (!parsed.attempts || !Array.isArray(parsed.attempts)) {
+        return false;
+      }
+
+      await this.adapter.update("attempts_history", parsed.attempts);
+
+      if (parsed.mastery && typeof parsed.mastery === "object") {
+        for (const [_t, m] of Object.entries(parsed.mastery)) {
+          await this.saveTopicMastery(m);
+        }
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async purgeWorkspace(): Promise<{ deletedCount: number }> {
+    const wsDir = path.join(os.homedir(), ".leetflow", "workspace");
+    let deletedCount = 0;
+    if (fs.existsSync(wsDir)) {
+      const entries = fs.readdirSync(wsDir);
+      for (const entry of entries) {
+        const fullPath = path.join(wsDir, entry);
+        try {
+          fs.rmSync(fullPath, { recursive: true, force: true });
+          deletedCount++;
+        } catch {}
+      }
+    }
+    return { deletedCount };
   }
 }

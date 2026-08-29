@@ -1,5 +1,5 @@
 import { CURRICULUM_DATASET } from "../data/curriculum";
-import type { StorageManager, TopicMasteryState } from "../storage/storage-manager";
+import type { AttemptLog, StorageManager, TopicMasteryState } from "../storage/storage-manager";
 
 export interface SummaryStats {
   totalSolved: number;
@@ -11,6 +11,13 @@ export interface SummaryStats {
   avgDurationMinutes: number;
   topicMasteries: TopicMasteryState[];
   dueReviews: { topic: string; daysOverdue: number }[];
+  attempts: AttemptLog[];
+  frictionBreakdown: {
+    trivial: number;
+    smooth: number;
+    struggled: number;
+    looked: number;
+  };
 }
 
 export class StatsCalculator {
@@ -55,6 +62,13 @@ export class StatsCalculator {
       }
     }
 
+    const frictionBreakdown = {
+      trivial: attempts.filter((a) => a.frictionRating === 1).length,
+      smooth: attempts.filter((a) => a.frictionRating === 2).length,
+      struggled: attempts.filter((a) => a.frictionRating === 3).length,
+      looked: attempts.filter((a) => a.frictionRating === 4).length,
+    };
+
     return {
       totalSolved,
       blind75Solved,
@@ -65,6 +79,8 @@ export class StatsCalculator {
       avgDurationMinutes,
       topicMasteries,
       dueReviews,
+      attempts: [...attempts].reverse(), // Newest first
+      frictionBreakdown,
     };
   }
 }

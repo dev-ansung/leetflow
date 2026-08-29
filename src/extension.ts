@@ -10,8 +10,8 @@ import { LeetCodeProvider } from "./providers/leetcode";
 import { ProblemResolver } from "./providers/problem-resolver";
 import { RunnerFactory } from "./runners/runner-factory";
 import { type StorageAdapter, StorageManager } from "./storage/storage-manager";
+import { LeetFlowConsoleWebview } from "./views/console-webview";
 import { LeetFlowStatsTreeProvider } from "./views/stats-treeview";
-import { LeetFlowStatsWebview } from "./views/stats-webview";
 import { LeetFlowTracksProvider } from "./views/treeview";
 import { LeetFlowWebview } from "./views/webview";
 
@@ -195,7 +195,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 7. Register Command: View Stats & Mastery
   const statsCmd = vscode.commands.registerCommand("leetflow.stats", () => {
-    LeetFlowStatsWebview.show(storage);
+    LeetFlowConsoleWebview.show(storage, () => {
+      tracksProvider.refresh();
+      statsTreeProvider.refresh();
+    });
   });
 
   // 8. Register Command: Review Due Problem
@@ -267,6 +270,14 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  // 12. Register Command: Open Console & Control Dashboard
+  const consoleCmd = vscode.commands.registerCommand("leetflow.console", () => {
+    LeetFlowConsoleWebview.show(storage, () => {
+      tracksProvider.refresh();
+      statsTreeProvider.refresh();
+    });
+  });
+
   context.subscriptions.push(
     nextCmd,
     startCmd,
@@ -277,6 +288,7 @@ export function activate(context: vscode.ExtensionContext) {
     modernizeCmd,
     resetCmd,
     openProblemCmd,
+    consoleCmd,
   );
 }
 

@@ -64,6 +64,12 @@
         "title": "LeetFlow: Open Problem by Number, Name, or URL",
         "category": "LeetFlow",
         "icon": "$(search)"
+      },
+      {
+        "command": "leetflow.console",
+        "title": "LeetFlow: Open Console & Control Dashboard",
+        "category": "LeetFlow",
+        "icon": "$(dashboard)"
       }
     ],
     "viewsContainers": {
@@ -98,6 +104,11 @@
           "command": "leetflow.openProblem",
           "when": "view == leetflow.tracksView",
           "group": "navigation"
+        },
+        {
+          "command": "leetflow.console",
+          "when": "view == leetflow.tracksView || view == leetflow.statsView",
+          "group": "navigation"
         }
       ],
       "editor/title": [
@@ -117,7 +128,7 @@
   "scripts": {
     "build": "bun run build:bundle",
     "build:bundle": "bun build ./src/extension.ts --outfile=./dist/extension.js --target=node --external=vscode --format=cjs",
-    "package": "bun run build && bunx @vscode/vsce package --no-dependencies --out artifacts/vsix/leetflow-0.1.0.vsix",
+    "package": "bun run build && bunx @vscode/vsce package --no-dependencies --out artifacts/vsix/leetflow-1.0.0.vsix",
     "test": "bun test",
     "lint": "biome check src test",
     "lint:fix": "biome check --write src test"
