@@ -57,13 +57,13 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
           "graph",
         ),
         this.createItem(
-          "📊 Open Full Stats Dashboard",
+          "📊 Open Console & Control Dashboard",
           "open_dash",
           vscode.TreeItemCollapsibleState.None,
-          "window",
+          "dashboard",
           {
-            command: "leetflow.stats",
-            title: "Open Dashboard",
+            command: "leetflow.console",
+            title: "Open Console",
           },
         ),
       ];

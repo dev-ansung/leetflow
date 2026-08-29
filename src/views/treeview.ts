@@ -40,6 +40,25 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       nextItem.command = { command: "leetflow.next", title: "Next Problem" };
       nextItem.description = "Auto-calibrated";
 
+      const openItem = new vscode.TreeItem(
+        "Open Problem by # / URL",
+        vscode.TreeItemCollapsibleState.None,
+      );
+      openItem.iconPath = new vscode.ThemeIcon("search", new vscode.ThemeColor("charts.blue"));
+      openItem.command = { command: "leetflow.openProblem", title: "Open Problem" };
+      openItem.description = "Quick open";
+
+      const consoleItem = new vscode.TreeItem(
+        "Console & Control Center",
+        vscode.TreeItemCollapsibleState.None,
+      );
+      consoleItem.iconPath = new vscode.ThemeIcon(
+        "dashboard",
+        new vscode.ThemeColor("charts.purple"),
+      );
+      consoleItem.command = { command: "leetflow.console", title: "Open Console" };
+      consoleItem.description = "History & stats";
+
       const b75Root = new vscode.TreeItem(
         "Blind 75 Roadmap",
         vscode.TreeItemCollapsibleState.Expanded,
@@ -55,7 +74,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       topicsRoot.contextValue = "topics_root";
       topicsRoot.iconPath = new vscode.ThemeIcon("folder");
 
-      return [nextItem, b75Root, topicsRoot];
+      return [nextItem, openItem, consoleItem, b75Root, topicsRoot];
     }
 
     if (element.contextValue === "blind75_root") {
@@ -111,7 +130,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
   private createProblemItem(p: CurriculumProblem, isSolved: boolean): vscode.TreeItem {
     const item = new vscode.TreeItem(`#${p.id} ${p.title}`, vscode.TreeItemCollapsibleState.None);
     item.contextValue = "problem_item";
-    item.description = `${p.difficulty} · ${p.pattern}`;
+    item.description = `${p.difficulty}`;
     item.command = {
       command: "leetflow.startProblem",
       title: "Start Problem",
