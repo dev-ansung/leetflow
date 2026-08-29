@@ -21,7 +21,7 @@ describe("Console Dashboard & Data Management Suite", () => {
     const exportJson = await storage.exportAllData();
     const parsed = JSON.parse(exportJson);
 
-    expect(parsed.version).toBe("1.0.0");
+    expect(parsed.version).toBe("2.0.0");
     expect(parsed.attempts.length).toBe(1);
     expect(parsed.attempts[0].slug).toBe("two-sum");
     expect(parsed.mastery["Array & Hashing"]).toBeDefined();

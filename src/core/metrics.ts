@@ -1,11 +1,91 @@
+import type { Difficulty, GradeTier, TopicMastery } from "../types";
+
 export class MetricsEngine {
   /**
-   * Calculates adjusted Elo rating based on solve speed and difficulty.
-   * @param currentElo Current topic Elo (default 1200)
-   * @param problemRating Estimated problem difficulty (1200 Easy, 1600 Medium, 2000 Hard)
-   * @param durationSec Total solve time in seconds
-   * @param targetSec Benchmark solve time in seconds
-   * @param passed Whether all test cases passed
+   * Returns letter grade tier based on mastery percentage (0 - 100%).
+   */
+  static getGradeTier(masteryPct: number): GradeTier {
+    if (masteryPct >= 90) return "S";
+    if (masteryPct >= 80) return "A";
+    if (masteryPct >= 65) return "B";
+    if (masteryPct >= 50) return "C";
+    if (masteryPct >= 35) return "D";
+    return "Novice";
+  }
+
+  /**
+   * Calculates new 0-100% mastery percentage after an attempt.
+   */
+  static calculateMastery(
+    currentMasteryPct: number,
+    difficulty: Difficulty,
+    rating: 1 | 2 | 3 | 4,
+    durationSec: number,
+    targetSec: number,
+    passed: boolean,
+  ): { newMasteryPct: number; deltaPct: number; grade: GradeTier } {
+    if (!passed) {
+      const deltaPct = -2;
+      const newMasteryPct = Math.max(0, currentMasteryPct + deltaPct);
+      return {
+        newMasteryPct,
+        deltaPct,
+        grade: MetricsEngine.getGradeTier(newMasteryPct),
+      };
+    }
+
+    // 1. Base credit by problem difficulty
+    const baseCredit = difficulty === "Easy" ? 6 : difficulty === "Medium" ? 10 : 16;
+
+    // 2. Friction multiplier
+    // 1: Trivial (1.2x), 2: Smooth (1.0x), 3: Struggled (0.5x), 4: Looked at solution (+1% flat)
+    let frictionMultiplier = 1.0;
+    if (rating === 1) frictionMultiplier = 1.25;
+    else if (rating === 2) frictionMultiplier = 1.0;
+    else if (rating === 3) frictionMultiplier = 0.5;
+    else if (rating === 4) frictionMultiplier = 0.15;
+
+    // 3. Speed bonus / penalty
+    const speedRatio = targetSec > 0 ? targetSec / Math.max(durationSec, 60) : 1.0;
+    const speedBonus =
+      speedRatio >= 1.0 ? Math.min(1.15, 0.95 + speedRatio * 0.05) : Math.max(0.8, speedRatio);
+
+    // 4. Diminishing returns curve as mastery approaches 100%
+    const headroomFactor = Math.max(0.2, (100 - currentMasteryPct) / 100);
+    const rawGain = baseCredit * frictionMultiplier * speedBonus * headroomFactor;
+    const deltaPct = Math.max(1, Math.round(rawGain));
+    const newMasteryPct = Math.min(100, Math.max(0, currentMasteryPct + deltaPct));
+
+    return {
+      newMasteryPct,
+      deltaPct,
+      grade: MetricsEngine.getGradeTier(newMasteryPct),
+    };
+  }
+
+  /**
+   * Computes overall weighted performance grade and readiness percentage.
+   */
+  static calculateOverallGrade(topicMasteries: TopicMastery[]): {
+    overallMasteryPct: number;
+    overallGrade: GradeTier;
+  } {
+    if (!topicMasteries || topicMasteries.length === 0) {
+      return { overallMasteryPct: 0, overallGrade: "Novice" };
+    }
+
+    const totalMastery = topicMasteries.reduce((sum, tm) => sum + (tm.masteryPct || 0), 0);
+    const overallMasteryPct = Math.round(totalMastery / topicMasteries.length);
+    const overallGrade = MetricsEngine.getGradeTier(overallMasteryPct);
+
+    return {
+      overallMasteryPct,
+      overallGrade,
+    };
+  }
+
+  /**
+   * Legacy backward-compatible Elo calculation.
    */
   static calculateElo(
     currentElo: number,
@@ -19,7 +99,6 @@ export class MetricsEngine {
 
     let actualScore = 0;
     if (passed) {
-      // Speed multiplier: faster solve = higher score bonus (0.8 to 1.2)
       const speedRatio = targetSec / Math.max(durationSec, 60);
       actualScore =
         speedRatio >= 1.0 ? Math.min(1.2, 0.9 + speedRatio * 0.1) : Math.max(0.6, speedRatio * 0.9);
@@ -33,21 +112,16 @@ export class MetricsEngine {
 
   /**
    * SuperMemo-2 Spaced Repetition Algorithm.
-   * @param rating User cognitive friction rating (1: Trivial, 2: Smooth, 3: Struggled, 4: Looked at solution)
-   * @param repetition Previous successful review count
-   * @param previousInterval Previous review interval in days
    */
   static calculateSM2(
     rating: 1 | 2 | 3 | 4,
     repetition: number,
     previousInterval: number,
   ): { nextIntervalDays: number; newRepetition: number } {
-    // Convert 1-4 scale to SM-2 quality (5: Trivial, 4: Smooth, 2: Struggled, 0: Failed)
     const qualityMap: Record<number, number> = { 1: 5, 2: 4, 3: 2, 4: 0 };
     const q = qualityMap[rating] ?? 3;
 
     if (q < 3) {
-      // Failed recall: reset to 1 day interval
       return { nextIntervalDays: 1, newRepetition: 0 };
     }
 

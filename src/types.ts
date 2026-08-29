@@ -1,5 +1,7 @@
 export type Difficulty = "Easy" | "Medium" | "Hard";
 
+export type GradeTier = "S" | "A" | "B" | "C" | "D" | "Novice";
+
 export interface TestCase {
   id: number;
   input: Record<string, any>;
@@ -43,9 +45,22 @@ export interface TestResult {
 
 export interface TopicMastery {
   topic: string;
-  elo: number;
+  masteryPct: number; // 0 - 100
+  grade: GradeTier;
   solvedCount: number;
   lastPracticedAt: string;
   reviewIntervalDays: number;
   repetitionLevel: number;
+  /** Backward-compatible Elo field */
+  elo: number;
+}
+
+export interface UserTrendMetrics {
+  overallGrade: GradeTier;
+  overallMasteryPct: number;
+  streakDays: number;
+  solvedLast7Days: number;
+  solvedLast30Days: number;
+  smoothRatePct: number;
+  averageDurationMinutes: number;
 }

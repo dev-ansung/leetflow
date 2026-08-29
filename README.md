@@ -36,7 +36,7 @@ Most engineers fail coding interviews not because they did not solve enough prob
 | **Editor Environment** | Browser textarea | Basic file dump | **Full native VS Code IDE & shortcuts** |
 | **Python Standards** | Legacy `List[int]`, camelCase | Legacy unchanged | **Modern Python 3.14+ (PEP 8, 585, 604)** |
 | **Spaced Repetition** | ❌ None | ❌ None | **✔ SuperMemo-2 (SM-2) Interval Decay** |
-| **Skill Calibration** | ❌ Global rank only | ❌ None | **✔ Topic-level Elo ratings (Array, DP, Tree)** |
+| **Skill Calibration** | ❌ Global rank only | ❌ None | **✔ 0-100% Mastery & Overall Grade (S/A/B/C/D)** |
 | **Curated Roadmaps** | Manual playlist search | Hardcoded or single list | **✔ 7 Curated Roadmaps (Blind 75, Grind 75, NeetCode 150/250/All, Top 150, Carl 200)** |
 | **Locked / Premium Access** | Paywall block | Fails on locked questions | **✔ Universal mirror sourcing fallback** |
 | **Execution Speed** | Remote queue latency | Variable | **✔ Sub-100ms local ephemeral sandbox** |
@@ -49,7 +49,7 @@ Most engineers fail coding interviews not because they did not solve enough prob
 1. **Open a Problem**: Click **`⚡ Next Recommended Problem`** in the sidebar, or press `Cmd+Shift+P` -> **`LeetFlow: Open Problem`** (type `#11` or paste any LeetCode link).
 2. **Code in Flow State**: Write your algorithm in modern, clean Python directly in your editor.
 3. **Test Instantly**: Click **`Run Tests`** (`$(beaker)`) in the editor title bar to evaluate sample cases locally in <100ms.
-4. **Submit & Review**: Click **`Submit Solution`** (`$(pass-filled)`). Rate your cognitive friction (Trivial -> Looked at Solution). LeetFlow automatically updates your topic Elo and schedules your next spaced repetition review date!
+4. **Submit & Review**: Click **`Submit Solution`** (`$(pass-filled)`). Rate your cognitive friction (Trivial -> Looked at Solution). LeetFlow automatically updates your Topic Mastery, recalculates your **Overall Grade**, and schedules your next spaced repetition review date!
 
 ---
 
@@ -83,6 +83,8 @@ class Solution:
 
 #### ✔ After (LeetFlow Modernized Template):
 ```python
+from __future__ import annotations
+
 class Solution:
     def two_sum(self, nums: list[int], target: int) -> list[int]:
         # PEP 8 snake_case + PEP 585 built-in generic collections
@@ -96,15 +98,20 @@ class Solution:
 
 ---
 
-### 3. 🧠 Spaced Repetition (SM-2) & Adaptive Elo Engine
+### 3. 🧠 0-100% Mastery, Overall Grade & User Trend Analytics
 Never solve 100 problems only to forget how to traverse a graph a month later.
 
-* **Topic-Based Elo Ratings**: Calibrates your exact mastery score per category (Dynamic Programming, Binary Search, Trees, Graphs, Sliding Window).
+* **Overall Letter Grade (S / A / B / C / D / Novice)**: Displays your global interview readiness score prominently at the top of your sidebar and Console dashboard (e.g. `🏆 Overall Grade: A (84% Mastery)`).
+* **0 - 100% Topic Mastery**: Tracks exact mastery percentages per category (Dynamic Programming, Binary Search, Trees, Graphs, Sliding Window).
 * **SuperMemo-2 (SM-2) Scheduling**: Calculates optimal review intervals based on your self-reported cognitive friction rating:
-  * **1 - Trivial**: Instant recall (+15 Elo, long review interval).
-  * **2 - Smooth**: Solved with natural flow (+10 Elo).
-  * **3 - Struggled**: Needed multiple attempts or significant debugging (-5 Elo, short review interval).
-  * **4 - Looked at Solution**: Required looking up the pattern (-20 Elo, resets SM-2 interval to 1 day).
+  * **1 - Trivial**: Instant recall ($+12\%$ Mastery, long review interval).
+  * **2 - Smooth**: Solved with natural flow ($+10\%$ Mastery).
+  * **3 - Struggled**: Needed multiple attempts or debugging ($+5\%$ partial Mastery, short review interval).
+  * **4 - Looked at Solution**: Required looking up the pattern ($+1\%$ exposure, resets SM-2 interval to 1 day).
+* **Rich User Trend Analytics**:
+  * **Solve Velocity**: 7-day and 30-day solve velocity with consecutive daily streak tracker.
+  * **Cognitive Flow Rate**: Tracks the percentage of problems solved with zero/low friction over time.
+  * **Average Duration**: Tracks your solving speed against benchmark targets.
 
 <!-- SCREENSHOT: Proficiency & Telemetry Sidebar -->
 <!-- Placeholder: Close-up of the Proficiency & Telemetry sidebar panel showing Total Solved, Active Roadmap %, Zero-Shot accuracy, Average Duration, and Topic Mastery Elo ratings -->

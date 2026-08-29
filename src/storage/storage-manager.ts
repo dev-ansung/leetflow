@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { MetricsEngine } from "../core/metrics";
 import { CURRICULUM_DATASET } from "../data/curriculum";
 import { TopicNormalizer } from "../data/topic-normalizer";
+import type { Difficulty, GradeTier, UserTrendMetrics } from "../types";
 
 export interface StorageAdapter {
   get<T>(key: string, defaultValue: T): Promise<T>;
@@ -43,12 +44,14 @@ export interface AttemptLog {
 
 export interface TopicMasteryState {
   topic: string;
-  elo: number;
+  masteryPct: number; // 0 - 100
+  grade: GradeTier;
   solvedCount: number;
   lastPracticedAt: string;
   reviewIntervalDays: number;
   nextReviewDue: string;
   repetitionLevel: number;
+  elo: number;
 }
 
 export interface BackupData {
@@ -65,8 +68,10 @@ export class StorageManager {
     const canonicalTopic = TopicNormalizer.normalize("", [topic]);
     const key = `mastery_${canonicalTopic}`;
 
-    return this.adapter.get<TopicMasteryState>(key, {
+    const raw = await this.adapter.get<any>(key, {
       topic: canonicalTopic,
+      masteryPct: 0,
+      grade: "Novice",
       elo: 1200,
       solvedCount: 0,
       lastPracticedAt: "",
@@ -74,31 +79,129 @@ export class StorageManager {
       nextReviewDue: "",
       repetitionLevel: 0,
     });
+
+    // Auto-migrate legacy Elo if masteryPct not explicitly stored
+    if (typeof raw.masteryPct !== "number") {
+      const legacyElo = typeof raw.elo === "number" ? raw.elo : 1200;
+      raw.masteryPct = Math.min(100, Math.max(0, Math.round(((legacyElo - 1000) / 1000) * 100)));
+    }
+    raw.grade = MetricsEngine.getGradeTier(raw.masteryPct);
+    raw.elo = typeof raw.elo === "number" ? raw.elo : 1000 + Math.round(raw.masteryPct * 10);
+
+    return raw as TopicMasteryState;
   }
 
   async saveTopicMastery(mastery: TopicMasteryState): Promise<void> {
     const canonicalTopic = TopicNormalizer.normalize("", [mastery.topic]);
     mastery.topic = canonicalTopic;
+    mastery.grade = MetricsEngine.getGradeTier(mastery.masteryPct);
     const key = `mastery_${canonicalTopic}`;
     await this.adapter.update(key, mastery);
+  }
+
+  async getAllMasteries(): Promise<TopicMasteryState[]> {
+    const topics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
+    const list: TopicMasteryState[] = [];
+    for (const t of topics) {
+      list.push(await this.getTopicMastery(t));
+    }
+    return list;
   }
 
   async getAttempts(): Promise<AttemptLog[]> {
     return this.adapter.get<AttemptLog[]>("attempts_history", []);
   }
 
+  async getUserTrendMetrics(): Promise<UserTrendMetrics> {
+    const attempts = await this.getAttempts();
+    const masteries = await this.getAllMasteries();
+    const { overallMasteryPct, overallGrade } = MetricsEngine.calculateOverallGrade(masteries);
+
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 3600 * 1000;
+    const thirtyDaysAgo = now - 30 * 24 * 3600 * 1000;
+
+    let solvedLast7Days = 0;
+    let solvedLast30Days = 0;
+    let smoothCount = 0;
+    let totalDurationSec = 0;
+
+    const solveDays = new Set<string>();
+
+    for (const a of attempts) {
+      const ts = new Date(a.timestamp).getTime();
+      if (a.passed) {
+        solveDays.add(new Date(a.timestamp).toISOString().split("T")[0]);
+        if (ts >= sevenDaysAgo) solvedLast7Days++;
+        if (ts >= thirtyDaysAgo) solvedLast30Days++;
+        if (a.frictionRating === 1 || a.frictionRating === 2) smoothCount++;
+        totalDurationSec += a.durationSec;
+      }
+    }
+
+    const passedAttempts = attempts.filter((a) => a.passed);
+    const smoothRatePct =
+      passedAttempts.length > 0 ? Math.round((smoothCount / passedAttempts.length) * 100) : 100;
+    const averageDurationMinutes =
+      passedAttempts.length > 0 ? Math.round(totalDurationSec / passedAttempts.length / 60) : 0;
+
+    // Calculate streak
+    let streakDays = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today.getTime() - i * 24 * 3600 * 1000).toISOString().split("T")[0];
+      if (solveDays.has(d)) {
+        streakDays++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    return {
+      overallGrade,
+      overallMasteryPct,
+      streakDays,
+      solvedLast7Days,
+      solvedLast30Days,
+      smoothRatePct,
+      averageDurationMinutes,
+    };
+  }
+
   async recordAttempt(params: {
     problemId: number;
     slug: string;
     topic: string;
+    difficulty?: Difficulty;
     durationSec: number;
     targetSec: number;
     thinkingSec: number;
     passed: boolean;
     frictionRating: 1 | 2 | 3 | 4;
-  }): Promise<{ newElo: number; delta: number; nextIntervalDays: number }> {
+  }): Promise<{
+    newMasteryPct: number;
+    deltaPct: number;
+    grade: GradeTier;
+    overallGrade: GradeTier;
+    overallMasteryPct: number;
+    newElo: number;
+    delta: number;
+    nextIntervalDays: number;
+  }> {
     const canonicalTopic = TopicNormalizer.normalize(params.slug, [params.topic]);
     const mastery = await this.getTopicMastery(canonicalTopic);
+    const difficulty: Difficulty =
+      params.difficulty ||
+      (params.targetSec > 2000 ? "Hard" : params.targetSec > 1000 ? "Medium" : "Easy");
+
+    const { newMasteryPct, deltaPct, grade } = MetricsEngine.calculateMastery(
+      mastery.masteryPct,
+      difficulty,
+      params.frictionRating,
+      params.durationSec,
+      params.targetSec,
+      params.passed,
+    );
 
     const { newElo, delta } = MetricsEngine.calculateElo(
       mastery.elo,
@@ -117,6 +220,8 @@ export class StorageManager {
     const now = new Date();
     const nextDueDate = new Date(now.getTime() + nextIntervalDays * 24 * 3600 * 1000);
 
+    mastery.masteryPct = newMasteryPct;
+    mastery.grade = grade;
     mastery.elo = newElo;
     mastery.solvedCount += params.passed ? 1 : 0;
     mastery.lastPracticedAt = now.toISOString();
@@ -143,7 +248,18 @@ export class StorageManager {
     attempts.push(log);
     await this.adapter.update("attempts_history", attempts);
 
-    return { newElo, delta, nextIntervalDays };
+    const trend = await this.getUserTrendMetrics();
+
+    return {
+      newMasteryPct,
+      deltaPct,
+      grade,
+      overallGrade: trend.overallGrade,
+      overallMasteryPct: trend.overallMasteryPct,
+      newElo,
+      delta,
+      nextIntervalDays,
+    };
   }
 
   async getActiveTrackId(): Promise<string> {
@@ -172,7 +288,7 @@ export class StorageManager {
     }
 
     const backup: BackupData = {
-      version: "1.0.0",
+      version: "2.0.0",
       exportedAt: new Date().toISOString(),
       attempts,
       mastery: masteryMap,

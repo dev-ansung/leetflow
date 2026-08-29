@@ -1,5 +1,6 @@
 import { TrackRegistry } from "../data/track-registry";
 import type { AttemptLog, StorageManager, TopicMasteryState } from "../storage/storage-manager";
+import type { UserTrendMetrics } from "../types";
 
 export interface SummaryStats {
   totalSolved: number;
@@ -21,6 +22,7 @@ export interface SummaryStats {
     struggled: number;
     looked: number;
   };
+  trend: UserTrendMetrics;
 }
 
 export class StatsCalculator {
@@ -79,6 +81,8 @@ export class StatsCalculator {
       looked: attempts.filter((a) => a.frictionRating === 4).length,
     };
 
+    const trend = await storage.getUserTrendMetrics();
+
     return {
       totalSolved,
       activeTrackName: activeTrack.name,
@@ -92,8 +96,9 @@ export class StatsCalculator {
       avgDurationMinutes,
       topicMasteries,
       dueReviews,
-      attempts: [...attempts].reverse(), // Newest first
+      attempts: [...attempts].reverse(),
       frictionBreakdown,
+      trend,
     };
   }
 }

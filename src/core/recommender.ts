@@ -3,7 +3,7 @@ import type { StorageManager } from "../storage/storage-manager";
 
 export interface RecommendationResult {
   problem: TrackProblem;
-  reason: "due_review" | "elo_match" | "curriculum_progression";
+  reason: "due_review" | "mastery_match" | "curriculum_progression";
   confidenceScore: number;
 }
 
@@ -39,26 +39,26 @@ export class RecommendationEngine {
       return dueProblems[0].problem;
     }
 
-    // 2. Recommend Unsolved Problems Matching Elo Zone of Proximal Development
+    // 2. Recommend Unsolved Problems Matching Mastery Zone of Proximal Development
     const unsolved = problems.filter((p) => !passedSlugs.has(p.slug));
     if (unsolved.length > 0) {
       const topicMasteries: Record<string, number> = {};
       for (const p of unsolved) {
-        if (!topicMasteries[p.topic]) {
+        if (topicMasteries[p.topic] === undefined) {
           const m = await this.storage.getTopicMastery(p.topic);
-          topicMasteries[p.topic] = m.elo;
+          topicMasteries[p.topic] = m.masteryPct ?? 0;
         }
       }
 
       unsolved.sort((a, b) => {
-        const eloA = topicMasteries[a.topic] || 1200;
-        const eloB = topicMasteries[b.topic] || 1200;
+        const masteryA = topicMasteries[a.topic] || 0;
+        const masteryB = topicMasteries[b.topic] || 0;
 
-        const targetEloA = a.difficulty === "Easy" ? 1200 : a.difficulty === "Medium" ? 1600 : 2000;
-        const targetEloB = b.difficulty === "Easy" ? 1200 : b.difficulty === "Medium" ? 1600 : 2000;
+        const targetMasteryA = a.difficulty === "Easy" ? 20 : a.difficulty === "Medium" ? 55 : 85;
+        const targetMasteryB = b.difficulty === "Easy" ? 20 : b.difficulty === "Medium" ? 55 : 85;
 
-        const diffA = Math.abs(eloA - targetEloA);
-        const diffB = Math.abs(eloB - targetEloB);
+        const diffA = Math.abs(masteryA - targetMasteryA);
+        const diffB = Math.abs(masteryB - targetMasteryB);
 
         return diffA - diffB;
       });

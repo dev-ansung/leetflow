@@ -29,19 +29,25 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
 
       const items: vscode.TreeItem[] = [
         this.createItem(
-          `🏆 Solved: ${stats.totalSolved} Problems`,
-          "summary",
+          `🏆 Overall Grade: ${stats.trend.overallGrade} (${stats.trend.overallMasteryPct}% Mastery)`,
+          "overall_grade",
           vscode.TreeItemCollapsibleState.None,
-          "check-all",
+          "award",
         ),
         this.createItem(
-          `🔥 ${stats.activeTrackName}: ${stats.activeTrackSolved}/${stats.activeTrackTotal} (${activePct}%)`,
-          "active_track",
+          `🔥 Solve Streak: ${stats.trend.streakDays} days (${stats.trend.solvedLast7Days} this week)`,
+          "streak",
           vscode.TreeItemCollapsibleState.None,
           "flame",
         ),
         this.createItem(
-          `⚡ Zero-Shot Pass Rate: ${stats.zeroShotRate}%`,
+          `📌 ${stats.activeTrackName}: ${stats.activeTrackSolved}/${stats.activeTrackTotal} (${activePct}%)`,
+          "active_track",
+          vscode.TreeItemCollapsibleState.None,
+          "bookmark",
+        ),
+        this.createItem(
+          `⚡ Zero-Shot Pass Rate: ${stats.zeroShotRate}% (${stats.trend.smoothRatePct}% Smooth)`,
           "accuracy",
           vscode.TreeItemCollapsibleState.None,
           "zap",
@@ -53,8 +59,8 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
           "clock",
         ),
         this.createItem(
-          "📈 Topic Mastery & Elo",
-          "elo_root",
+          "📈 Topic Mastery & Grades",
+          "mastery_root",
           vscode.TreeItemCollapsibleState.Expanded,
           "graph",
         ),
@@ -73,7 +79,7 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
       return items;
     }
 
-    if (element.contextValue === "elo_root") {
+    if (element.contextValue === "mastery_root") {
       const stats = await StatsCalculator.computeSummary(this.storage);
       if (stats.topicMasteries.length === 0) {
         const item = new vscode.TreeItem("No topics practiced yet");
@@ -83,10 +89,10 @@ export class LeetFlowStatsTreeProvider implements vscode.TreeDataProvider<vscode
 
       return stats.topicMasteries.map((m) => {
         const item = new vscode.TreeItem(m.topic, vscode.TreeItemCollapsibleState.None);
-        item.description = `Elo: ${m.elo} (${m.solvedCount} solved)`;
+        item.description = `${m.masteryPct}% [${m.grade}] · ${m.solvedCount} solved`;
         item.iconPath = new vscode.ThemeIcon(
-          "symbol-class",
-          new vscode.ThemeColor("charts.yellow"),
+          m.masteryPct >= 80 ? "pass-filled" : "symbol-class",
+          new vscode.ThemeColor(m.masteryPct >= 80 ? "charts.green" : "charts.yellow"),
         );
         return item;
       });

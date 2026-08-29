@@ -173,16 +173,18 @@ export function activate(context: vscode.ExtensionContext) {
     const ratingVal = (frictionChoice?.value || 2) as 1 | 2 | 3 | 4;
     const topic = TopicNormalizer.normalize(problem.slug, problem.topics);
 
-    const { newElo, delta, nextIntervalDays } = await storage.recordAttempt({
-      problemId: problem.id,
-      slug: problem.slug,
-      topic,
-      durationSec,
-      targetSec: problem.targetTimeSeconds,
-      thinkingSec,
-      passed: true,
-      frictionRating: ratingVal,
-    });
+    const { newMasteryPct, deltaPct, grade, overallGrade, overallMasteryPct, nextIntervalDays } =
+      await storage.recordAttempt({
+        problemId: problem.id,
+        slug: problem.slug,
+        topic,
+        difficulty: problem.difficulty,
+        durationSec,
+        targetSec: problem.targetTimeSeconds,
+        thinkingSec,
+        passed: true,
+        frictionRating: ratingVal,
+      });
 
     stopTimer();
     session.clear();
@@ -190,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
     statsTreeProvider.refresh();
 
     vscode.window.showInformationMessage(
-      `🎉 Problem Solved in ${durationMin}m! ${topic} Elo: ${newElo} (${delta >= 0 ? "+" : ""}${delta}). Next review scheduled in ${nextIntervalDays} days.`,
+      `🎉 Solved in ${durationMin}m! ${topic}: ${newMasteryPct}% [${grade}] (${deltaPct >= 0 ? "+" : ""}${deltaPct}%) · Overall: ${overallMasteryPct}% [${overallGrade}]. Next review in ${nextIntervalDays}d.`,
     );
   });
 

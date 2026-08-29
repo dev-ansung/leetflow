@@ -15,16 +15,17 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
     expect(topics.has("Graph")).toBe(true);
   });
 
-  it("should record attempts and update topic mastery correctly in StorageManager", async () => {
+  it("should record attempts and update topic mastery & grades correctly in StorageManager", async () => {
     const storage = new StorageManager(new MemoryStorageAdapter());
 
-    // Initial Elo should be 1200
+    // Initial Mastery should be 0% (Novice)
     const initialMastery = await storage.getTopicMastery("Dynamic Programming");
-    expect(initialMastery.elo).toBe(1200);
+    expect(initialMastery.masteryPct).toBe(0);
+    expect(initialMastery.grade).toBe("Novice");
     expect(initialMastery.solvedCount).toBe(0);
 
     // Record a successful attempt
-    await storage.recordAttempt({
+    const res = await storage.recordAttempt({
       problemId: 70,
       slug: "climbing-stairs",
       topic: "Dynamic Programming",
@@ -35,10 +36,18 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
       frictionRating: 2, // Smooth
     });
 
+    expect(res.newMasteryPct).toBeGreaterThan(0);
+    expect(res.deltaPct).toBeGreaterThan(0);
+
     const updatedMastery = await storage.getTopicMastery("Dynamic Programming");
     expect(updatedMastery.solvedCount).toBe(1);
-    expect(updatedMastery.elo).toBeGreaterThan(1200);
+    expect(updatedMastery.masteryPct).toBeGreaterThan(0);
     expect(updatedMastery.reviewIntervalDays).toBe(1);
+
+    const trend = await storage.getUserTrendMetrics();
+    expect(trend.overallMasteryPct).toBeGreaterThanOrEqual(0);
+    expect(trend.streakDays).toBe(1);
+    expect(trend.solvedLast7Days).toBe(1);
 
     const attempts = await storage.getAttempts();
     expect(attempts.length).toBe(1);
@@ -71,13 +80,14 @@ describe("Adaptive Recommendation & Storage Engine Suite", () => {
     expect(nextProblem.slug).toBeDefined();
   });
 
-  it("should recommend within optimal Elo zone of proximal development", async () => {
+  it("should recommend within optimal Mastery zone of proximal development", async () => {
     const storage = new StorageManager(new MemoryStorageAdapter());
     const engine = new RecommendationEngine(storage);
 
-    // Elevate Tree Elo to 1700 (Medium/Hard range)
+    // Elevate Tree Mastery to 65% (B tier)
     const treeMastery = await storage.getTopicMastery("Binary Tree");
-    treeMastery.elo = 1700;
+    treeMastery.masteryPct = 65;
+    treeMastery.grade = "B";
     await storage.saveTopicMastery(treeMastery);
 
     const recommended = await engine.recommendNext("blind75");

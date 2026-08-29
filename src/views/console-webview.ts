@@ -132,22 +132,33 @@ export class LeetFlowConsoleWebview {
   }
 
   private _getHtmlForWebview(stats: SummaryStats): string {
-    const blind75Percent =
+    const _blind75Percent =
       stats.blind75Total > 0 ? Math.round((stats.blind75Solved / stats.blind75Total) * 100) : 0;
     const _neetCodePercent =
       stats.neetCodeTotal > 0 ? Math.round((stats.neetCodeSolved / stats.neetCodeTotal) * 100) : 0;
 
+    const gradeColorMap: Record<string, string> = {
+      S: "#a371f7",
+      A: "#7ee787",
+      B: "#79c0ff",
+      C: "#e3b341",
+      D: "#ff7b72",
+      Novice: "#8b949e",
+    };
+
     const masteryRows = stats.topicMasteries
       .map((m) => {
-        const eloWidth = Math.min(100, Math.max(10, Math.round(((m.elo - 1000) / 1000) * 100)));
+        const gradeColor = gradeColorMap[m.grade] || "#79c0ff";
         return `
         <div class="mastery-item">
           <div class="mastery-header">
             <span class="topic-name">${m.topic}</span>
-            <span class="elo-badge">${m.elo} Elo (${m.solvedCount} solved)</span>
+            <span class="elo-badge" style="color: ${gradeColor}; border: 1px solid ${gradeColor}40;">
+              ${m.masteryPct}% [${m.grade}] · ${m.solvedCount} solved
+            </span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" style="width: ${eloWidth}%;"></div>
+            <div class="progress-fill" style="width: ${m.masteryPct}%; background: ${gradeColor};"></div>
           </div>
         </div>
       `;
@@ -436,26 +447,43 @@ export class LeetFlowConsoleWebview {
 
   <!-- TAB 1: ANALYTICS -->
   <div id="tab-analytics" class="tab-content active">
+    <div class="card hero-grade-card" style="margin-bottom: 20px; border-left: 6px solid #a371f7; background: rgba(163, 113, 247, 0.08);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="card-title" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Overall Interview Readiness</div>
+          <div style="font-size: 32px; font-weight: 700; color: #fff; margin: 4px 0;">
+            Grade: <span style="color: #a371f7;">${stats.trend.overallGrade}</span>
+            <span style="font-size: 20px; font-weight: 400; color: #8b949e; margin-left: 8px;">(${stats.trend.overallMasteryPct}% Global Mastery)</span>
+          </div>
+          <div class="card-subtext" style="font-size: 12px;">Based on difficulty coverage, solve speed, and cognitive friction across all patterns</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 24px;">🔥 ${stats.trend.streakDays} Day Streak</div>
+          <div class="card-subtext">${stats.trend.solvedLast7Days} solved past 7 days</div>
+        </div>
+      </div>
+    </div>
+
     <div class="grid">
       <div class="card">
         <div class="card-title">Total Solved</div>
         <div class="card-value">${stats.totalSolved}</div>
-        <div class="card-subtext">Unique problems completed</div>
+        <div class="card-subtext">${stats.activeTrackName}: ${stats.activeTrackSolved}/${stats.activeTrackTotal}</div>
       </div>
       <div class="card">
-        <div class="card-title">Blind 75 Roadmap</div>
-        <div class="card-value">${stats.blind75Solved} / ${stats.blind75Total}</div>
-        <div class="card-subtext">${blind75Percent}% completed</div>
+        <div class="card-title">7-Day Velocity</div>
+        <div class="card-value">${stats.trend.solvedLast7Days}</div>
+        <div class="card-subtext">${stats.trend.solvedLast30Days} solved past 30 days</div>
       </div>
       <div class="card">
-        <div class="card-title">Zero-Shot Pass Rate</div>
-        <div class="card-value">${stats.zeroShotRate}%</div>
-        <div class="card-subtext">Solved on first test run</div>
+        <div class="card-title">Cognitive Flow Rate</div>
+        <div class="card-value">${stats.trend.smoothRatePct}%</div>
+        <div class="card-subtext">Solved with zero/low friction</div>
       </div>
       <div class="card">
         <div class="card-title">Average Duration</div>
         <div class="card-value">${stats.avgDurationMinutes}m</div>
-        <div class="card-subtext">Solve pace per problem</div>
+        <div class="card-subtext">Zero-Shot Rate: ${stats.zeroShotRate}%</div>
       </div>
     </div>
 
