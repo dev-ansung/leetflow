@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { RecommendationEngine } from "./core/recommender";
+import { TopicNormalizer } from "./data/topic-normalizer";
 import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
 import { RunnerFactory } from "./runners/runner-factory";
@@ -164,7 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const ratingVal = (frictionChoice?.value || 2) as 1 | 2 | 3 | 4;
-    const topic = currentProblem.topics[0] || "Algorithms";
+    const topic = TopicNormalizer.normalize(currentProblem.slug, currentProblem.topics);
 
     const { newElo, delta, nextIntervalDays } = await storage.recordAttempt({
       problemId: currentProblem.id,

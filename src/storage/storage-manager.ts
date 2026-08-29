@@ -1,4 +1,5 @@
 import { MetricsEngine } from "../core/metrics";
+import { TopicNormalizer } from "../data/topic-normalizer";
 
 export interface StorageAdapter {
   get<T>(key: string, defaultValue: T): Promise<T>;
@@ -44,26 +45,56 @@ export interface TopicMasteryState {
 export class StorageManager {
   constructor(private adapter: StorageAdapter) {}
 
-  async getTopicMastery(topic: string): Promise<TopicMasteryState> {
+  async getTopicMastery(rawTopic: string): Promise<TopicMasteryState> {
+    const topic = TopicNormalizer.normalize("", [rawTopic]);
     const key = `mastery_${topic}`;
-    return this.adapter.get<TopicMasteryState>(key, {
-      topic,
-      elo: 1200,
-      solvedCount: 0,
-      lastPracticedAt: "",
-      reviewIntervalDays: 0,
-      nextReviewDue: "",
-      repetitionLevel: 0,
-    });
+
+    let data = await this.adapter.get<TopicMasteryState | null>(key, null);
+    if (!data && topic !== rawTopic) {
+      // Check legacy key
+      const legacyKey = `mastery_${rawTopic}`;
+      data = await this.adapter.get<TopicMasteryState | null>(legacyKey, null);
+      if (data) {
+        data.topic = topic;
+        await this.adapter.update(key, data);
+      }
+    }
+
+    return (
+      data || {
+        topic,
+        elo: 1200,
+        solvedCount: 0,
+        lastPracticedAt: "",
+        reviewIntervalDays: 0,
+        nextReviewDue: "",
+        repetitionLevel: 0,
+      }
+    );
   }
 
   async saveTopicMastery(mastery: TopicMasteryState): Promise<void> {
-    const key = `mastery_${mastery.topic}`;
+    const topic = TopicNormalizer.normalize("", [mastery.topic]);
+    mastery.topic = topic;
+    const key = `mastery_${topic}`;
     await this.adapter.update(key, mastery);
   }
 
   async getAttempts(): Promise<AttemptLog[]> {
-    return this.adapter.get<AttemptLog[]>("attempts_history", []);
+    const rawAttempts = await this.adapter.get<AttemptLog[]>("attempts_history", []);
+    // Normalize topics in attempts
+    let changed = false;
+    for (const a of rawAttempts) {
+      const canon = TopicNormalizer.normalize(a.slug, [a.topic]);
+      if (a.topic !== canon) {
+        a.topic = canon;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this.adapter.update("attempts_history", rawAttempts);
+    }
+    return rawAttempts;
   }
 
   async recordAttempt(params: {
@@ -76,7 +107,9 @@ export class StorageManager {
     passed: boolean;
     frictionRating: 1 | 2 | 3 | 4;
   }): Promise<{ newElo: number; delta: number; nextIntervalDays: number }> {
-    const mastery = await this.getTopicMastery(params.topic);
+    const canonicalTopic = TopicNormalizer.normalize(params.slug, [params.topic]);
+    const mastery = await this.getTopicMastery(canonicalTopic);
+
     const { newElo, delta } = MetricsEngine.calculateElo(
       mastery.elo,
       params.targetSec > 2000 ? 1900 : params.targetSec > 1000 ? 1600 : 1200,
@@ -108,7 +141,7 @@ export class StorageManager {
       id: String(Date.now()),
       problemId: params.problemId,
       slug: params.slug,
-      topic: params.topic,
+      topic: canonicalTopic,
       timestamp: now.toISOString(),
       durationSec: params.durationSec,
       targetSec: params.targetSec,
