@@ -33,7 +33,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
     if (!element) {
       const activeProblems = TrackRegistry.getTrackProblems(activeTrack.id);
       const activeSolved = activeProblems.filter((p) => solvedSlugs.has(p.slug)).length;
-      const activePct =
+      const _activePct =
         activeProblems.length > 0 ? Math.round((activeSolved / activeProblems.length) * 100) : 0;
 
       // 1. Next Problem Action
@@ -45,28 +45,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       nextItem.command = { command: "leetflow.next", title: "Next Problem" };
       nextItem.description = `Auto-match (${activeTrack.name})`;
 
-      // 2. Quick Open Action
-      const openItem = new vscode.TreeItem(
-        "Open Problem by # / URL",
-        vscode.TreeItemCollapsibleState.None,
-      );
-      openItem.iconPath = new vscode.ThemeIcon("search", new vscode.ThemeColor("charts.blue"));
-      openItem.command = { command: "leetflow.openProblem", title: "Open Problem" };
-      openItem.description = "Quick open";
-
-      // 3. Switch Roadmap Action
-      const switchItem = new vscode.TreeItem(
-        "Switch Roadmap",
-        vscode.TreeItemCollapsibleState.None,
-      );
-      switchItem.iconPath = new vscode.ThemeIcon(
-        "arrow-swap",
-        new vscode.ThemeColor("charts.purple"),
-      );
-      switchItem.command = { command: "leetflow.switchTrack", title: "Switch Roadmap" };
-      switchItem.description = `${activeTrack.name} · ${activeSolved}/${activeProblems.length} (${activePct}%)`;
-
-      // 4. Render Active Track Categories Directly
+      // 2. Render Active Track Categories Directly
       const categoryFolders = activeTrack.categories.map((cat) => {
         const catProblems = cat.problems;
         const catSolved = catProblems.filter((p) => solvedSlugs.has(p.slug)).length;
@@ -82,7 +61,7 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
         return catFolder;
       });
 
-      return [nextItem, openItem, switchItem, ...categoryFolders];
+      return [nextItem, ...categoryFolders];
     }
 
     // Expanding Category

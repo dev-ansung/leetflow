@@ -75,7 +75,7 @@
         "command": "leetflow.switchTrack",
         "title": "LeetFlow: Switch Active Roadmap Track...",
         "category": "LeetFlow",
-        "icon": "$(sync)"
+        "icon": "$(arrow-swap)"
       }
     ],
     "viewsContainers": {
