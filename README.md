@@ -7,7 +7,7 @@
 [![Linter](https://img.shields.io/badge/linter-Biome-60a5fa.svg)]()
 
 > **Stop grinding LeetCode aimlessly in browser tabs.**  
-> LeetFlow brings a cognitive-engineered deliberate practice environment directly into your VS Code editor - complete with **modern Python 3.14+ standards**, **SM-2 spaced repetition**, **topic-based Elo ratings**, and **1-click roadmap switching** across Blind 75, Grind 75, NeetCode 150, Top Interview 150, and Programmer Carl 200.
+> LeetFlow brings a cognitive-engineered deliberate practice environment directly into your VS Code editor - complete with **modern Python 3.14+ standards**, **SM-2 spaced repetition**, **topic-based Elo ratings**, and **1-click roadmap switching** across Blind 75, Grind 75, NeetCode 150, NeetCode 250, NeetCode All, Top Interview 150, and Programmer Carl 200.
 
 ---
 
@@ -37,7 +37,7 @@ Most engineers fail coding interviews not because they did not solve enough prob
 | **Python Standards** | Legacy `List[int]`, camelCase | Legacy unchanged | **Modern Python 3.14+ (PEP 8, 585, 604)** |
 | **Spaced Repetition** | ❌ None | ❌ None | **✔ SuperMemo-2 (SM-2) Interval Decay** |
 | **Skill Calibration** | ❌ Global rank only | ❌ None | **✔ Topic-level Elo ratings (Array, DP, Tree)** |
-| **Curated Roadmaps** | Manual playlist search | Hardcoded or single list | **✔ 6 Built-in Roadmaps (Blind 75, Grind 75, NeetCode, Top 150)** |
+| **Curated Roadmaps** | Manual playlist search | Hardcoded or single list | **✔ 7 Curated Roadmaps (Blind 75, Grind 75, NeetCode 150/250/All, Top 150, Carl 200)** |
 | **Locked / Premium Access** | Paywall block | Fails on locked questions | **✔ Universal mirror sourcing fallback** |
 | **Execution Speed** | Remote queue latency | Variable | **✔ Sub-100ms local ephemeral sandbox** |
 | **Data Privacy & Control** | Cloud locked | Local files only | **✔ JSON Backup Export/Import & Reset** |
@@ -58,11 +58,13 @@ Most engineers fail coding interviews not because they did not solve enough prob
 ### 1. 🔀 Multi-Track Roadmap Switcher
 Switch between industry-standard interview preparation roadmaps with a single click. LeetFlow tracks your global progress so solving a problem in one roadmap automatically checks it off across all others:
 
-* **Blind 75** (Yangshun Tay definitive 75 questions)
-* **Grind 75** (Tech Interview Handbook time-optimized roadmap)
-* **NeetCode 25 & NeetCode 150** (Comprehensive pattern taxonomy)
-* **Top Interview 150** (LeetCode official interview study plan)
-* **Programmer Carl 200** (代码随想录 progressive step-by-step curriculum)
+* **Blind 75** (Yangshun Tay's definitive 75 questions)
+* **Grind 75** (Tech Interview Handbook's 75 time-optimized questions)
+* **NeetCode 150** (The canonical 150-question pattern taxonomy)
+* **NeetCode 250** (Expanded 250-question deep pattern roadmap)
+* **NeetCode All** (Complete master catalog of 310+ curated problems)
+* **Top Interview 150** (LeetCode's official 150 study plan questions)
+* **Programmer Carl 200** (代码随想录 179-question step-by-step curriculum)
 
 <!-- SCREENSHOT: Practice Tracks Sidebar -->
 <!-- Placeholder: Close-up of the Practice Tracks sidebar showing the Switch Roadmap quickpick and categorized folders with progress badges (e.g. Array & Hashing 7/10) -->

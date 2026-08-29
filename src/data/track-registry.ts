@@ -1,8 +1,9 @@
 import blind75Track from "./tracks/blind75.json";
 import carl200Track from "./tracks/carl200.json";
 import grind75Track from "./tracks/grind75.json";
-import neetcode25Track from "./tracks/neetcode25.json";
+import neetcodeAllTrack from "./tracks/neetcode-all.json";
 import neetcode150Track from "./tracks/neetcode150.json";
+import neetcode250Track from "./tracks/neetcode250.json";
 import topInterview150Track from "./tracks/top-interview-150.json";
 
 export interface TrackProblem {
@@ -36,8 +37,9 @@ export class TrackRegistry {
   private static readonly TRACKS: TrackManifest[] = [
     blind75Track as TrackManifest,
     grind75Track as TrackManifest,
-    neetcode25Track as TrackManifest,
     neetcode150Track as TrackManifest,
+    neetcode250Track as TrackManifest,
+    neetcodeAllTrack as TrackManifest,
     topInterview150Track as TrackManifest,
     carl200Track as TrackManifest,
   ];
