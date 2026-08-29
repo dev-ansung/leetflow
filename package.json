@@ -49,6 +49,11 @@
         "command": "leetflow.modernizeSolution",
         "title": "LeetFlow: Modernize Current Solution to Modern Python",
         "category": "LeetFlow"
+      },
+      {
+        "command": "leetflow.resetProgress",
+        "title": "LeetFlow: Reset All Progress & Telemetry Data",
+        "category": "LeetFlow"
       }
     ],
     "viewsContainers": {

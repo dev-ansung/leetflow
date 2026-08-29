@@ -21,12 +21,18 @@ let storage: StorageManager;
 let recommender: RecommendationEngine;
 
 class VSCodeGlobalStateAdapter implements StorageAdapter {
-  constructor(private state: vscode.Memento) {}
+  constructor(private state: vscode.Memento & { keys?(): readonly string[] }) {}
   async get<T>(key: string, defaultValue: T): Promise<T> {
     return this.state.get<T>(key, defaultValue);
   }
   async update<T>(key: string, value: T): Promise<void> {
     await this.state.update(key, value);
+  }
+  async clear(): Promise<void> {
+    const keys = this.state.keys ? this.state.keys() : [];
+    for (const k of keys) {
+      await this.state.update(k, undefined);
+    }
   }
 }
 
@@ -218,6 +224,23 @@ export function activate(context: vscode.ExtensionContext) {
     );
   });
 
+  // 10. Register Command: Reset Progress & Telemetry Data
+  const resetCmd = vscode.commands.registerCommand("leetflow.resetProgress", async () => {
+    const confirm = await vscode.window.showWarningMessage(
+      "Are you sure you want to reset all LeetFlow problem attempts, Elo ratings, and telemetry data?",
+      { modal: true },
+      "Yes, Reset All Data",
+    );
+    if (confirm === "Yes, Reset All Data") {
+      await storage.resetAll();
+      tracksProvider.refresh();
+      statsTreeProvider.refresh();
+      vscode.window.showInformationMessage(
+        "✔ All LeetFlow progress and telemetry data has been wiped.",
+      );
+    }
+  });
+
   context.subscriptions.push(
     nextCmd,
     startCmd,
@@ -226,6 +249,7 @@ export function activate(context: vscode.ExtensionContext) {
     statsCmd,
     reviewCmd,
     modernizeCmd,
+    resetCmd,
   );
 }
 
