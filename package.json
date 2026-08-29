@@ -54,6 +54,12 @@
         "command": "leetflow.resetProgress",
         "title": "LeetFlow: Reset All Progress & Telemetry Data",
         "category": "LeetFlow"
+      },
+      {
+        "command": "leetflow.openProblem",
+        "title": "LeetFlow: Open Problem by Number, Name, or URL",
+        "category": "LeetFlow",
+        "icon": "$(search)"
       }
     ],
     "viewsContainers": {
@@ -81,6 +87,11 @@
       "view/title": [
         {
           "command": "leetflow.next",
+          "when": "view == leetflow.tracksView",
+          "group": "navigation"
+        },
+        {
+          "command": "leetflow.openProblem",
           "when": "view == leetflow.tracksView",
           "group": "navigation"
         }

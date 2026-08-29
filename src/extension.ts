@@ -7,6 +7,7 @@ import { SessionManager } from "./core/session-manager";
 import { TopicNormalizer } from "./data/topic-normalizer";
 import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
+import { ProblemResolver } from "./providers/problem-resolver";
 import { RunnerFactory } from "./runners/runner-factory";
 import { type StorageAdapter, StorageManager } from "./storage/storage-manager";
 import { LeetFlowStatsTreeProvider } from "./views/stats-treeview";
@@ -241,6 +242,31 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // 11. Register Command: Open Problem by Number, Slug, or URL
+  const openProblemCmd = vscode.commands.registerCommand(
+    "leetflow.openProblem",
+    async (rawInput?: string) => {
+      let input = rawInput;
+      if (!input || typeof input !== "string") {
+        input = await vscode.window.showInputBox({
+          title: "LeetFlow: Open Problem",
+          prompt:
+            "Enter problem # (e.g. 11), title slug (e.g. container-with-most-water), or LeetCode URL",
+          placeHolder: "e.g. 11 or https://leetcode.com/problems/container-with-most-water/",
+        });
+      }
+
+      if (!input) return;
+
+      try {
+        const slug = await ProblemResolver.resolveSlug(input);
+        await startProblemSession(slug, context, tracksProvider, statsTreeProvider);
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Failed to open problem "${input}": ${err.message}`);
+      }
+    },
+  );
+
   context.subscriptions.push(
     nextCmd,
     startCmd,
@@ -250,6 +276,7 @@ export function activate(context: vscode.ExtensionContext) {
     reviewCmd,
     modernizeCmd,
     resetCmd,
+    openProblemCmd,
   );
 }
 
