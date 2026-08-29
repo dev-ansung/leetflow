@@ -12,6 +12,16 @@ export class LeetFlowWebview {
     this.problem = problem;
     this.update();
 
+    this.panel.webview.onDidReceiveMessage((msg) => {
+      if (msg.command === "runTests") {
+        vscode.commands.executeCommand("leetflow.test");
+      } else if (msg.command === "submit") {
+        vscode.commands.executeCommand("leetflow.submit");
+      } else if (msg.command === "resetCode") {
+        vscode.commands.executeCommand("leetflow.resetProblem");
+      }
+    });
+
     this.panel.onDidDispose(() => {
       LeetFlowWebview.currentPanel = undefined;
     });
@@ -128,15 +138,52 @@ export class LeetFlowWebview {
     .title-row {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
+    }
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .difficulty {
       color: ${diffColor};
       font-weight: bold;
-      font-size: 0.9em;
+      font-size: 0.85em;
       border: 1px solid ${diffColor};
       padding: 2px 8px;
       border-radius: 12px;
+    }
+    .actions-row {
+      display: flex;
+      gap: 6px;
+    }
+    .action-btn {
+      background: var(--vscode-button-secondaryBackground, rgba(255,255,255,0.08));
+      color: var(--vscode-button-secondaryForeground, #fff);
+      border: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.15));
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .action-btn:hover {
+      background: rgba(255,255,255,0.16);
+    }
+    .submit-btn {
+      background: #38bdf820;
+      color: #38bdf8;
+      border-color: #38bdf850;
+    }
+    .submit-btn:hover {
+      background: #38bdf835;
+    }
+    .reset-btn:hover {
+      color: #ff7b72;
+      border-color: #ff7b7250;
     }
     .topics {
       margin-top: 8px;
@@ -178,27 +225,57 @@ export class LeetFlowWebview {
       padding: 8px 12px;
       margin-bottom: 8px;
     }
+    .case-pass { border-left: 3px solid #49c277; }
+    .case-fail { border-left: 3px solid #ff375f; }
     .case-header {
       display: flex;
       justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 0.9em;
+    }
+    .case-body div {
+      font-size: 0.85em;
       margin-bottom: 4px;
     }
-    .case-pass { border-left: 4px solid #49c277; }
-    .case-fail { border-left: 4px solid #ff375f; }
-    .error-text { color: #ff375f; margin-top: 4px; }
-    .error-box { background: rgba(255,55,95,0.15); color: #ff375f; padding: 10px; border-radius: 6px; }
-    .hints-box { margin-top: 20px; padding: 8px; border: 1px dashed var(--vscode-panel-border); border-radius: 6px; }
+    .error-text { color: #ff375f; font-family: monospace; margin-top: 4px; }
+    .error-box {
+      background: rgba(255, 55, 95, 0.15);
+      border-left: 3px solid #ff375f;
+      padding: 8px 12px;
+      color: #ff375f;
+      font-family: monospace;
+      font-size: 0.85em;
+    }
+    .hints-box {
+      margin-top: 16px;
+      background: var(--vscode-editorWidget-background, rgba(255,255,255,0.03));
+      border: 1px dashed var(--vscode-widget-border, rgba(255,255,255,0.2));
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+    .hints-box ol {
+      margin-left: 20px;
+      margin-top: 6px;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="title-row">
-      <h2>#${p.id} ${p.title}</h2>
-      <span class="difficulty">${p.difficulty}</span>
+      <div class="title-left">
+        <h2>#${p.id} ${p.title}</h2>
+        <span class="difficulty">${p.difficulty}</span>
+      </div>
+      <div class="actions-row">
+        <button class="action-btn" onclick="runTests()">▶ Run Tests</button>
+        <button class="action-btn submit-btn" onclick="submit()">✔ Submit</button>
+        <button class="action-btn reset-btn" onclick="resetCode()">↺ Reset Code</button>
+      </div>
     </div>
     <div class="topics">
       ${p.topics.map((t) => `<span class="topic-tag">${t}</span>`).join("")}
-      <span class="topic-tag">⏱ Target: ${Math.round(p.targetTimeSeconds / 60)}m</span>
+      <span class="topic-tag" style="opacity: 0.7;">⏱ Target: ${Math.round(p.targetTimeSeconds / 60)}m</span>
     </div>
   </div>
 
@@ -209,6 +286,13 @@ export class LeetFlowWebview {
   </div>
 
   ${hintsHtml}
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    function runTests() { vscode.postMessage({ command: "runTests" }); }
+    function submit() { vscode.postMessage({ command: "submit" }); }
+    function resetCode() { vscode.postMessage({ command: "resetCode" }); }
+  </script>
 </body>
 </html>`;
   }

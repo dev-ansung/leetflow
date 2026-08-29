@@ -31,63 +31,74 @@
     "commands": [
       {
         "command": "leetflow.next",
-        "title": "LeetFlow: Next Recommended Problem",
+        "title": "Next Recommended Problem",
+        "category": "LeetFlow",
         "icon": "$(play)"
       },
       {
         "command": "leetflow.test",
-        "title": "LeetFlow: Run Tests",
+        "title": "Run Tests",
+        "category": "LeetFlow",
         "icon": "$(beaker)"
       },
       {
         "command": "leetflow.submit",
-        "title": "LeetFlow: Submit Solution",
+        "title": "Submit Solution",
+        "category": "LeetFlow",
         "icon": "$(pass-filled)"
       },
       {
-        "command": "leetflow.stats",
-        "title": "LeetFlow: View Stats & Mastery",
-        "icon": "$(graph)"
+        "command": "leetflow.resetProblem",
+        "title": "Reset Current Solution to Starter Code",
+        "category": "LeetFlow",
+        "icon": "$(discard)"
       },
       {
         "command": "leetflow.modernizeSolution",
-        "title": "LeetFlow: Modernize Current Solution to Modern Python",
-        "category": "LeetFlow"
+        "title": "Modernize Current Solution to Modern Python",
+        "category": "LeetFlow",
+        "icon": "$(wand)"
       },
       {
-        "command": "leetflow.resetProgress",
-        "title": "LeetFlow: Reset All Progress & Telemetry Data",
-        "category": "LeetFlow"
+        "command": "leetflow.stats",
+        "title": "View Stats & Mastery",
+        "category": "LeetFlow",
+        "icon": "$(graph)"
       },
       {
         "command": "leetflow.openProblem",
-        "title": "LeetFlow: Open Problem by Number, Name, or URL",
+        "title": "Open Problem by Number, Name, or URL",
         "category": "LeetFlow",
         "icon": "$(search)"
       },
       {
         "command": "leetflow.console",
-        "title": "LeetFlow: Open Console & Control Dashboard",
+        "title": "Open Console & Control Dashboard",
         "category": "LeetFlow",
         "icon": "$(dashboard)"
       },
       {
         "command": "leetflow.switchTrack",
-        "title": "LeetFlow: Switch Active Roadmap Track...",
+        "title": "Switch Active Roadmap Track...",
         "category": "LeetFlow",
         "icon": "$(arrow-swap)"
       },
       {
         "command": "leetflow.toggleTimer",
-        "title": "LeetFlow: Pause / Resume Stopwatch Timer",
+        "title": "Pause / Resume Stopwatch Timer",
         "category": "LeetFlow",
         "icon": "$(debug-pause)"
       },
       {
         "command": "leetflow.selectInterpreter",
-        "title": "LeetFlow: Select Python Interpreter...",
+        "title": "Select Python Interpreter...",
         "category": "LeetFlow",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "leetflow.resetProgress",
+        "title": "Reset All Progress & Telemetry Data",
+        "category": "LeetFlow"
       }
     ],
     "viewsContainers": {
@@ -137,12 +148,17 @@
       "editor/title": [
         {
           "command": "leetflow.test",
-          "group": "navigation",
+          "group": "navigation@1",
           "when": "resourceExtname == .py"
         },
         {
           "command": "leetflow.submit",
-          "group": "navigation",
+          "group": "navigation@2",
+          "when": "resourceExtname == .py"
+        },
+        {
+          "command": "leetflow.resetProblem",
+          "group": "navigation@3",
           "when": "resourceExtname == .py"
         }
       ]

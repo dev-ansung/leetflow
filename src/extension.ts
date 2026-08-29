@@ -4,6 +4,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { RecommendationEngine } from "./core/recommender";
 import { SessionManager } from "./core/session-manager";
+import { CURRICULUM_DATASET } from "./data/curriculum";
 import { TrackRegistry } from "./data/track-registry";
 import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
@@ -242,6 +243,92 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // 16. Register Command: Reset Current Problem Solution
+  const resetProblemCmd = vscode.commands.registerCommand("leetflow.resetProblem", async () => {
+    const editor = vscode.window.activeTextEditor;
+    const activeProblem = session.getActiveProblem();
+    let targetSlug = activeProblem?.slug;
+
+    if (!targetSlug && editor?.document.fileName.endsWith(".py")) {
+      const parentDir = path.basename(path.dirname(editor.document.fileName));
+      targetSlug = parentDir.replace(/^\d+-/, "");
+    }
+
+    if (!targetSlug) {
+      vscode.window.showWarningMessage("No active problem open to reset.");
+      return;
+    }
+
+    const answer = await vscode.window.showWarningMessage(
+      `Reset solution for "${targetSlug}" back to clean starter template? Any unsaved edits will be lost.`,
+      { modal: true },
+      "Reset Code",
+    );
+
+    if (answer !== "Reset Code") {
+      return;
+    }
+
+    try {
+      let problem = await leetCodeProvider.getProblem(targetSlug);
+      if (!problem) {
+        problem = await mirrorProvider.getProblem(targetSlug);
+      }
+      if (!problem) {
+        const cat = CURRICULUM_DATASET.find((p) => p.slug === targetSlug);
+        if (cat) {
+          problem = {
+            id: cat.id,
+            title: cat.title,
+            slug: cat.slug,
+            difficulty: cat.difficulty,
+            topics: [cat.topic],
+            descriptionHtml: `<p>${cat.title}</p>`,
+            starterCode: `class Solution:\n    def ${cat.slug.replace(/-/g, "_")}(self):\n        pass\n`,
+            functionName: cat.slug.replace(/-/g, "_"),
+            params: [],
+            testCases: [],
+            hints: [],
+            targetTimeSeconds: 900,
+          };
+        }
+      }
+
+      if (!problem) {
+        vscode.window.showErrorMessage(`Failed to fetch starter template for "${targetSlug}".`);
+        return;
+      }
+
+      const cleanStarter = PythonModernizer.modernize(problem.starterCode);
+
+      if (editor?.document.fileName.includes(targetSlug)) {
+        const fullRange = new vscode.Range(
+          editor.document.positionAt(0),
+          editor.document.positionAt(editor.document.getText().length),
+        );
+        await editor.edit((editBuilder) => editBuilder.replace(fullRange, cleanStarter));
+        await editor.document.save();
+      } else {
+        const wsDir = path.join(
+          os.homedir(),
+          ".leetflow",
+          "workspace",
+          `${problem.id}-${problem.slug}`,
+        );
+        const solPath = path.join(wsDir, "solution.py");
+        if (fs.existsSync(solPath)) {
+          fs.writeFileSync(solPath, cleanStarter, "utf8");
+        }
+      }
+
+      vscode.window.showInformationMessage(
+        `↺ Problem #${problem.id} ${problem.title} reset to clean starter code.`,
+      );
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Failed to reset problem: ${err.message || err}`);
+    }
+  });
+
   // 11. Register Command: Open Problem by Number, Slug, or URL
   const openProblemCmd = vscode.commands.registerCommand(
     "leetflow.openProblem",
@@ -390,6 +477,7 @@ export function activate(context: vscode.ExtensionContext) {
     switchTrackCmd,
     toggleTimerCmd,
     selectInterpreterCmd,
+    resetProblemCmd,
   );
 }
 
