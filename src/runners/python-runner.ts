@@ -25,20 +25,107 @@ export class PythonRunner extends BaseSubprocessRunner {
     testCases: TestCase[],
   ): string {
     const casesJson = JSON.stringify(testCases);
-    return `
+    return `from __future__ import annotations
 import sys
 import json
 import time
 import importlib.util
+import inspect
 
 def deep_equal(a, b):
     if a == b:
+        return True
+    if (a is None and b == []) or (a == [] and b is None):
         return True
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return False
         return all(deep_equal(x, y) for x, y in zip(a, b))
+    if isinstance(a, dict) and isinstance(b, dict):
+        if set(a.keys()) != set(b.keys()):
+            return False
+        return all(deep_equal(a[k], b[k]) for k in a)
     return False
+
+def serialize_val(v):
+    if v is None or isinstance(v, (int, float, str, bool)):
+        return v
+    if isinstance(v, (list, tuple)):
+        return [serialize_val(x) for x in v]
+    if isinstance(v, dict):
+        return {k: serialize_val(val) for k, val in v.items()}
+    if hasattr(v, "val") and hasattr(v, "next"):
+        res = []
+        curr = v
+        seen = set()
+        while curr:
+            if id(curr) in seen:
+                break
+            seen.add(id(curr))
+            res.append(serialize_val(curr.val))
+            curr = curr.next
+        return res
+    if hasattr(v, "val") and hasattr(v, "left") and hasattr(v, "right"):
+        from collections import deque
+        res = []
+        q = deque([v])
+        while q:
+            node = q.popleft()
+            if node:
+                res.append(serialize_val(node.val))
+                q.append(node.left)
+                q.append(node.right)
+            else:
+                res.append(None)
+        while res and res[-1] is None:
+            res.pop()
+        return res
+    return str(v)
+
+def deserialize_param(val, param_name, type_hint_str, mod):
+    ListNodeCls = getattr(mod, "ListNode", None)
+    TreeNodeCls = getattr(mod, "TreeNode", None)
+
+    is_list_node = (
+        (type_hint_str and "ListNode" in type_hint_str) or
+        param_name.lower().startswith("list") or
+        param_name.lower().startswith("head") or
+        param_name.lower() == "node" or
+        "list_node" in param_name.lower()
+    )
+    if is_list_node and isinstance(val, list) and ListNodeCls:
+        dummy = ListNodeCls(0)
+        curr = dummy
+        for x in val:
+            curr.next = ListNodeCls(x)
+            curr = curr.next
+        return dummy.next
+
+    is_tree_node = (
+        (type_hint_str and "TreeNode" in type_hint_str) or
+        param_name.lower().startswith("root") or
+        param_name.lower().startswith("tree")
+    )
+    if is_tree_node and isinstance(val, list) and TreeNodeCls:
+        if not val:
+            return None
+        from collections import deque
+        root = TreeNodeCls(val[0])
+        q = deque([root])
+        i = 1
+        while q and i < len(val):
+            node = q.popleft()
+            if i < len(val) and val[i] is not None:
+                node.left = TreeNodeCls(val[i])
+                q.append(node.left)
+            i += 1
+            if i < len(val) and val[i] is not None:
+                node.right = TreeNodeCls(val[i])
+                q.append(node.right)
+            i += 1
+        return root
+
+    return val
 
 def run_all():
     cases = json.loads(${JSON.stringify(casesJson)})
@@ -74,14 +161,28 @@ def run_all():
             print(json.dumps({"error": "No callable solver method found in Solution"}))
             sys.exit(0)
 
+    type_hints = {}
+    try:
+        sig = inspect.signature(fn)
+        for p_name, param in sig.parameters.items():
+            if param.annotation != inspect.Parameter.empty:
+                type_hints[p_name] = str(param.annotation)
+    except Exception:
+        pass
+
     case_results = []
     all_passed = True
     total_start = time.perf_counter()
 
     for c in cases:
         c_id = c.get("id", 1)
-        input_kwargs = c.get("input", {})
+        raw_inputs = c.get("input", {})
         expected = c.get("expected")
+
+        deserialized_inputs = {}
+        for p_name, p_val in raw_inputs.items():
+            hint_str = type_hints.get(p_name, "")
+            deserialized_inputs[p_name] = deserialize_param(p_val, p_name, hint_str, mod)
 
         start = time.perf_counter()
         actual = None
@@ -89,7 +190,8 @@ def run_all():
         err_msg = None
 
         try:
-            actual = fn(**input_kwargs)
+            raw_actual = fn(**deserialized_inputs)
+            actual = serialize_val(raw_actual)
             duration_ms = (time.perf_counter() - start) * 1000.0
             
             if expected is not None:
@@ -106,7 +208,7 @@ def run_all():
 
         case_results.append({
             "id": c_id,
-            "input": input_kwargs,
+            "input": raw_inputs,
             "expected": expected,
             "actual": actual,
             "passed": passed,

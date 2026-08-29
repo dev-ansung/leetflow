@@ -1,12 +1,14 @@
 export class PythonModernizer {
+  private static readonly FUTURE_IMPORT = "from __future__ import annotations";
+
   private static readonly LIST_NODE_DEF = `class ListNode:
-    def __init__(self, val: int = 0, next: "ListNode | None" = None):
+    def __init__(self, val: int = 0, next: ListNode | None = None):
         self.val = val
         self.next = next
 `;
 
   private static readonly TREE_NODE_DEF = `class TreeNode:
-    def __init__(self, val: int = 0, left: "TreeNode | None" = None, right: "TreeNode | None" = None):
+    def __init__(self, val: int = 0, left: TreeNode | None = None, right: TreeNode | None = None):
         self.val = val
         self.left = left
         self.right = right
@@ -46,8 +48,9 @@ export class PythonModernizer {
       },
     );
 
-    // 3. Clean redundant typing imports
+    // 3. Clean redundant typing imports & existing future imports
     result = result.replace(/^from\s+typing\s+import\s+.*[\r\n]*/gm, "");
+    result = result.replace(/^from\s+__future__\s+import\s+.*[\r\n]*/gm, "");
 
     // 4. Clean out commented-out boilerplate definitions
     result = result.replace(
@@ -68,17 +71,16 @@ export class PythonModernizer {
     const needsTreeNode =
       (result.includes("TreeNode") || result.includes("tree_node")) && !hasUncommentedTreeNode;
 
-    const helpers: string[] = [];
+    const headerParts: string[] = [PythonModernizer.FUTURE_IMPORT];
+
     if (needsListNode) {
-      helpers.push(PythonModernizer.LIST_NODE_DEF);
+      headerParts.push(PythonModernizer.LIST_NODE_DEF.trim());
     }
     if (needsTreeNode) {
-      helpers.push(PythonModernizer.TREE_NODE_DEF);
+      headerParts.push(PythonModernizer.TREE_NODE_DEF.trim());
     }
 
-    if (helpers.length > 0) {
-      result = `${helpers.join("\n")}\n${result.trimStart()}`;
-    }
+    result = `${headerParts.join("\n\n")}\n\n${result.trimStart()}`;
 
     return `${result.trim()}\n`;
   }

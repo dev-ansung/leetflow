@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { PythonRunner } from "../../src/runners/python-runner";
 import { RunnerFactory } from "../../src/runners/runner-factory";
 import { TypeScriptRunner } from "../../src/runners/typescript-runner";
 
@@ -48,6 +49,54 @@ export class Solution {
     expect(res.passedCount).toBe(3);
     expect(res.totalCount).toBe(3);
     expect(res.totalDurationMs).toBeGreaterThan(0);
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("should execute Python solution with ListNode and future annotations", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "leetflow-py-listnode-"));
+    const solPath = path.join(tmpDir, "solution.py");
+
+    fs.writeFileSync(
+      solPath,
+      `from __future__ import annotations
+
+class ListNode:
+    def __init__(self, val: int = 0, next: ListNode | None = None):
+        self.val = val
+        self.next = next
+
+class Solution:
+    def merge_two_lists(self, list1: ListNode | None, list2: ListNode | None) -> ListNode | None:
+        dummy = ListNode(0)
+        curr = dummy
+        while list1 and list2:
+            if list1.val < list2.val:
+                curr.next = list1
+                list1 = list1.next
+            else:
+                curr.next = list2
+                list2 = list2.next
+            curr = curr.next
+        if list1:
+            curr.next = list1
+        if list2:
+            curr.next = list2
+        return dummy.next
+`,
+      "utf-8",
+    );
+
+    const cases = [
+      { id: 1, input: { list1: [1, 2, 4], list2: [1, 3, 4] }, expected: [1, 1, 2, 3, 4, 4] },
+      { id: 2, input: { list1: [], list2: [] }, expected: [] },
+      { id: 3, input: { list1: [], list2: [0] }, expected: [0] },
+    ];
+
+    const res = await PythonRunner.runTests(solPath, "merge_two_lists", cases);
+    expect(res.allPassed).toBe(true);
+    expect(res.passedCount).toBe(3);
+    expect(res.totalCount).toBe(3);
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
