@@ -1,7 +1,7 @@
 import { CURRICULUM_DATASET } from "./curriculum";
 
 export class TopicNormalizer {
-  private static readonly ALIAS_MAP: Record<string, string> = {
+  private static readonly TAG_MAP: Record<string, string> = {
     Array: "Array & Hashing",
     "Hash Table": "Array & Hashing",
     "Hash Set": "Array & Hashing",
@@ -36,26 +36,16 @@ export class TopicNormalizer {
     }
 
     for (const tag of rawTopics) {
-      if (TopicNormalizer.ALIAS_MAP[tag]) {
-        return TopicNormalizer.ALIAS_MAP[tag];
+      if (TopicNormalizer.TAG_MAP[tag]) {
+        return TopicNormalizer.TAG_MAP[tag];
       }
     }
 
     if (rawTopics.length > 0 && rawTopics[0]) {
       const first = rawTopics[0];
-      return TopicNormalizer.ALIAS_MAP[first] || first;
+      return TopicNormalizer.TAG_MAP[first] || first;
     }
 
     return "Algorithms";
-  }
-
-  static getLegacyAliases(canonicalTopic: string): string[] {
-    const aliases: string[] = [canonicalTopic];
-    for (const [raw, canon] of Object.entries(TopicNormalizer.ALIAS_MAP)) {
-      if (canon === canonicalTopic && !aliases.includes(raw)) {
-        aliases.push(raw);
-      }
-    }
-    return aliases;
   }
 }

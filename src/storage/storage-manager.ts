@@ -4,6 +4,7 @@ import { TopicNormalizer } from "../data/topic-normalizer";
 export interface StorageAdapter {
   get<T>(key: string, defaultValue: T): Promise<T>;
   update<T>(key: string, value: T): Promise<void>;
+  clear?(): Promise<void>;
 }
 
 export class MemoryStorageAdapter implements StorageAdapter {
@@ -15,6 +16,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
 
   async update<T>(key: string, value: T): Promise<void> {
     this.state.set(key, value);
+  }
+
+  async clear(): Promise<void> {
+    this.state.clear();
   }
 }
 
@@ -45,38 +50,19 @@ export interface TopicMasteryState {
 export class StorageManager {
   constructor(private adapter: StorageAdapter) {}
 
-  async getTopicMastery(rawTopic: string): Promise<TopicMasteryState> {
-    const canonicalTopic = TopicNormalizer.normalize("", [rawTopic]);
-    const canonicalKey = `mastery_${canonicalTopic}`;
+  async getTopicMastery(topic: string): Promise<TopicMasteryState> {
+    const canonicalTopic = TopicNormalizer.normalize("", [topic]);
+    const key = `mastery_${canonicalTopic}`;
 
-    // Check canonical key first
-    let data = await this.adapter.get<TopicMasteryState | null>(canonicalKey, null);
-
-    // If not found, search all legacy aliases
-    if (!data) {
-      const aliases = TopicNormalizer.getLegacyAliases(canonicalTopic);
-      for (const alias of aliases) {
-        const legacyKey = `mastery_${alias}`;
-        const legacyData = await this.adapter.get<TopicMasteryState | null>(legacyKey, null);
-        if (legacyData) {
-          data = { ...legacyData, topic: canonicalTopic };
-          await this.adapter.update(canonicalKey, data);
-          break;
-        }
-      }
-    }
-
-    return (
-      data || {
-        topic: canonicalTopic,
-        elo: 1200,
-        solvedCount: 0,
-        lastPracticedAt: "",
-        reviewIntervalDays: 0,
-        nextReviewDue: "",
-        repetitionLevel: 0,
-      }
-    );
+    return this.adapter.get<TopicMasteryState>(key, {
+      topic: canonicalTopic,
+      elo: 1200,
+      solvedCount: 0,
+      lastPracticedAt: "",
+      reviewIntervalDays: 0,
+      nextReviewDue: "",
+      repetitionLevel: 0,
+    });
   }
 
   async saveTopicMastery(mastery: TopicMasteryState): Promise<void> {
@@ -87,19 +73,7 @@ export class StorageManager {
   }
 
   async getAttempts(): Promise<AttemptLog[]> {
-    const rawAttempts = await this.adapter.get<AttemptLog[]>("attempts_history", []);
-    let changed = false;
-    for (const a of rawAttempts) {
-      const canon = TopicNormalizer.normalize(a.slug, [a.topic]);
-      if (a.topic !== canon) {
-        a.topic = canon;
-        changed = true;
-      }
-    }
-    if (changed) {
-      await this.adapter.update("attempts_history", rawAttempts);
-    }
-    return rawAttempts;
+    return this.adapter.get<AttemptLog[]>("attempts_history", []);
   }
 
   async recordAttempt(params: {
@@ -159,5 +133,13 @@ export class StorageManager {
     await this.adapter.update("attempts_history", attempts);
 
     return { newElo, delta, nextIntervalDays };
+  }
+
+  async resetAll(): Promise<void> {
+    if (this.adapter.clear) {
+      await this.adapter.clear();
+    } else {
+      await this.adapter.update("attempts_history", []);
+    }
   }
 }
