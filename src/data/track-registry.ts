@@ -1,3 +1,4 @@
+import { TopicNormalizer } from "./topic-normalizer";
 import blind75Track from "./tracks/blind75.json";
 import carl200Track from "./tracks/carl200.json";
 import grind75Track from "./tracks/grind75.json";
@@ -58,12 +59,13 @@ export class TrackRegistry {
     const result: TrackProblem[] = [];
     for (const cat of track.categories) {
       for (const p of cat.problems) {
+        const canonicalTopic = TopicNormalizer.normalize(p.slug, [cat.name]);
         result.push({
           id: p.id,
           slug: p.slug,
           title: p.title,
           difficulty: p.difficulty,
-          topic: cat.name,
+          topic: canonicalTopic,
         });
       }
     }

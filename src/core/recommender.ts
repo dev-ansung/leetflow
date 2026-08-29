@@ -60,7 +60,10 @@ export class RecommendationEngine {
         const diffA = Math.abs(masteryA - targetMasteryA);
         const diffB = Math.abs(masteryB - targetMasteryB);
 
-        return diffA - diffB;
+        if (diffA !== diffB) {
+          return diffA - diffB;
+        }
+        return problems.indexOf(a) - problems.indexOf(b);
       });
 
       return unsolved[0];
