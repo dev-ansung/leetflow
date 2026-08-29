@@ -1,152 +1,188 @@
-# LeetFlow: Cognitive-Engineered LeetCode Practice for VS Code
+# ⚡ LeetFlow: Deliberate LeetCode Mastery for VS Code
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Tests: Passing](https://img.shields.io/badge/Tests-27%20Passed-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/dev-ansung/leetflow/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-34%20passing-brightgreen.svg)]()
 [![VS Code](https://img.shields.io/badge/VS%20Code-%3E%3D%201.85.0-007ACC.svg)]()
-[![Code Standard](https://img.shields.io/badge/Linter-Biome-60a5fa.svg)]()
+[![Linter](https://img.shields.io/badge/linter-Biome-60a5fa.svg)]()
 
-**LeetFlow** is an intelligent, distraction-free LeetCode deliberate practice environment built natively inside VS Code. It combines **universal problem sourcing**, **modern Python 3.14+ template standards**, **zero-latency sandboxed test execution**, and **adaptive spaced repetition (SM-2 + Elo rating)** into a unified offline-capable workflow.
-
----
-
-## 1. Key Features
-
-### 🐍 Modern Python Template Engine
-LeetCode by default provides legacy camelCase method names and deprecated `typing` generics (`List[int]`, `Optional[TreeNode]`). LeetFlow automatically modernizes all problem templates on the fly:
-* **PEP 8 Compliance**: Converts methods to `snake_case` (e.g. `def two_sum(...)` or `def alien_order(...)`).
-* **PEP 585 Generics**: Migrates collections to modern built-in types (`list[int]`, `dict[str, int]`, `tuple[...]`).
-* **PEP 604 Union Syntax**: Replaces `Optional[T]` with clean pipe union syntax (`TreeNode | None`).
-* **Auto-Injected Data Structures**: Automatically includes typed `ListNode` and `TreeNode` class helpers directly in your `solution.py` with custom constructor initializers.
-* **Manual Upgrade Command**: Run `LeetFlow: Modernize Python Solution` (`leetflow.modernizeSolution`) at any time to upgrade existing code.
-
-### 🔍 Universal Problem Sourcing & Multi-Format Opener
-Open any LeetCode problem instantly without opening a browser:
-* **By Problem Number**: Type `1` or `11` or `#269`.
-* **By Full URL**: Paste any link like `https://leetcode.com/problems/container-with-most-water/` or `leetcode.cn` links.
-* **By Title / Slug**: Type `container-with-most-water` or keywords `Median of Two Sorted Arrays`.
-* **3,500+ Global Problem Catalog**: Queries live LeetCode GraphQL with automatic fallback to high-speed mirror repositories for premium/locked problems.
-
-### ⚡ Ephemeral Sandboxed Test Runner
-* **Sub-100ms Execution**: Runs your algorithm locally in an isolated subprocess with zero workspace pollution.
-* **Multi-Language Support**: Full out-of-the-box support for Python 3 (`python3`) and TypeScript (`bun`).
-* **Deep Equality Verification**: Intelligently compares nested arrays, matrices, object graphs, and floating point outputs.
-* **Infinite Loop Guards**: Strict 4.0-second execution timeout guard (`SIGKILL`) prevents hanging editors.
-
-### 📈 Topic Elo & Spaced Repetition (SM-2)
-* **Topic-Based Elo Ratings**: Calibrates your true skill rating per pattern category (Array & Hashing, Two Pointers, Dynamic Programming, Graphs, etc.) based on solve speed and difficulty.
-* **Cognitive Friction Logging**: Track your solve quality (1 - Trivial, 2 - Smooth, 3 - Struggled, 4 - Looked at Solution).
-* **SuperMemo-2 (SM-2) Interval Decay**: Automatically schedules review sessions so you practice problems right at the point of forgetting.
-
-### 📊 Native Sidebar & Interactive Dashboard
-* **Practice Tracks**: Curated Blind 75 and NeetCode 150 roadmaps organized into collapsible topic folders with status indicators.
-* **Proficiency & Telemetry Sidebar**: Live stats tracking total solved, Blind 75 completion rate, zero-shot pass percentage, and topic Elo ratings.
-* **Interactive Stats Webview**: Rich visual dashboard opened via `LeetFlow: View Stats & Mastery`.
-* **Status Bar Stopwatch**: Live timer in the bottom-right corner tracking active problem solve duration and thinking time.
+> **Stop grinding LeetCode aimlessly in browser tabs.**  
+> LeetFlow brings a cognitive-engineered deliberate practice environment directly into your VS Code editor - complete with **modern Python 3.14+ standards**, **SM-2 spaced repetition**, **topic-based Elo ratings**, and **1-click roadmap switching** across Blind 75, Grind 75, NeetCode 150, Top Interview 150, and Programmer Carl 200.
 
 ---
 
-## 2. Architecture & Dataflow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant Tree as Sidebar Explorer
-    participant Ext as LeetFlow Core
-    participant Resolver as Problem Resolver
-    participant Web as Webview Panel
-    participant Edit as Code Editor
-    participant Runner as Ephemeral Sandbox
-    participant Storage as Local Storage
-
-    User->>Tree: Click "Open Problem" or "Next Recommended Problem"
-    Tree->>Resolver: Resolve number, URL, or topic recommendation
-    Resolver->>Ext: Return canonical problem metadata & test cases
-    Ext->>Web: Render problem statement & constraints
-    Ext->>Edit: Scaffold ~/.leetflow/workspace/<id>-<slug>/solution.py
-    Ext->>User: Start Status Bar timer (⏱ 00:00)
-    User->>Edit: Write algorithm
-    User->>Ext: Trigger "Run Tests" (Editor beaker icon)
-    Ext->>Runner: Execute solution in isolated sandbox
-    Runner-->>Ext: Test results (pass/fail, latency, diffs)
-    Ext-->>Web: Update live diagnostics table
-    User->>Ext: Trigger "Submit Solution"
-    Ext->>Runner: Verify all test cases pass
-    Ext->>User: Prompt for cognitive friction rating [1-4]
-    User->>Ext: Select friction rating (e.g. "Smooth")
-    Ext->>Storage: Update topic Elo & calculate next SM-2 review interval
-    Ext->>User: Display celebration notification with Elo delta
+<!-- SCREENSHOT: Hero Showcase -->
+<!-- Placeholder: Full VS Code window showing a split layout with the problem statement webview on the right, modern solution.py code in the center, and the LeetFlow Practice Tracks sidebar on the left -->
+```
++-----------------------------------------------------------------------------------------+
+| [Practice Tracks]   | solution.py (PEP 8 + Modern Typing) | Problem Statement Webview   |
+| ⚡ Next Problem      | def two_sum(                        | #1. Two Sum                 |
+| 🔀 Blind 75 (12/75) |     self,                           | Given an array of integers  |
+| ▶ Array & Hashing   |     nums: list[int],                | nums and an integer target, |
+| ▶ Two Pointers      |     target: int,                    | return indices of the two   |
+| ▶ Sliding Window    | ) -> list[int]:                     | numbers such that they add  |
+|                     |     seen: dict[int, int] = {}       | up to target...             |
++-----------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Commands & Controls Matrix
+## 💡 Why LeetFlow? (The Value Matrix)
 
-| Command | Identifier | Description | Shortcut / Location |
-|---|---|---|---|
-| **Next Recommended Problem** | `leetflow.next` | Recommends the optimal problem based on mastery and due reviews | `Cmd+Shift+P` -> `LeetFlow: Next` |
-| **Open Problem by Number / URL** | `leetflow.openProblem` | Opens any problem by number (e.g. `11`), slug, or LeetCode URL | Sidebar $(search) icon |
-| **Run Tests** | `leetflow.test` | Executes current solution against sample cases in ephemeral sandbox | Editor title bar $(beaker) |
-| **Submit Solution** | `leetflow.submit` | Evaluates all cases, logs friction rating, and updates topic Elo | Editor title bar $(pass-filled) |
-| **Modernize Python Solution** | `leetflow.modernizeSolution` | Migrates active file to PEP 8 snake_case and PEP 585/604 typing | `Cmd+Shift+P` -> `LeetFlow: Modernize` |
-| **View Stats & Mastery** | `leetflow.stats` | Displays topic Elo breakdown, roadmap progress, and stats | Status Bar $(pulse) |
-| **Review Due Problem** | `leetflow.review` | Opens the next problem due for spaced repetition review | `Cmd+Shift+P` -> `LeetFlow: Review` |
-| **Reset Progress Data** | `leetflow.resetProgress` | Wipes attempt history and resets topic Elo ratings to fresh state | `Cmd+Shift+P` -> `LeetFlow: Reset` |
+Most engineers fail coding interviews not because they did not solve enough problems, but because they **forgot the patterns** they solved weeks ago, or wasted mental energy wrestling with clunky web editors and outdated starter templates.
+
+| Feature / Experience | LeetCode Web | Generic VS Code Plugins | ⚡ LeetFlow |
+|:---|:---:|:---:|:---:|
+| **Editor Environment** | Browser textarea | Basic file dump | **Full native VS Code IDE & shortcuts** |
+| **Python Standards** | Legacy `List[int]`, camelCase | Legacy unchanged | **Modern Python 3.14+ (PEP 8, 585, 604)** |
+| **Spaced Repetition** | ❌ None | ❌ None | **✔ SuperMemo-2 (SM-2) Interval Decay** |
+| **Skill Calibration** | ❌ Global rank only | ❌ None | **✔ Topic-level Elo ratings (Array, DP, Tree)** |
+| **Curated Roadmaps** | Manual playlist search | Hardcoded or single list | **✔ 6 Built-in Roadmaps (Blind 75, Grind 75, NeetCode, Top 150)** |
+| **Locked / Premium Access** | Paywall block | Fails on locked questions | **✔ Universal mirror sourcing fallback** |
+| **Execution Speed** | Remote queue latency | Variable | **✔ Sub-100ms local ephemeral sandbox** |
+| **Data Privacy & Control** | Cloud locked | Local files only | **✔ JSON Backup Export/Import & Reset** |
 
 ---
 
-## 4. Installation
+## 🚀 60-Second Quick Start
 
-### Option A: Install from GitHub Releases (.vsix)
-1. Download the latest `leetflow-x.x.x.vsix` release from **[GitHub Releases](https://github.com/dev-ansung/leetflow/releases)**.
-2. In VS Code, open the **Extensions** view (`Cmd+Shift+X` on macOS or `Ctrl+Shift+X` on Windows/Linux).
-3. Click the **`...`** (Views and More Actions) menu in the top-right corner of the Extensions sidebar.
-4. Select **Install from VSIX...** and pick the downloaded `.vsix` file.
+1. **Open a Problem**: Click **`⚡ Next Recommended Problem`** in the sidebar, or press `Cmd+Shift+P` -> **`LeetFlow: Open Problem`** (type `#11` or paste any LeetCode link).
+2. **Code in Flow State**: Write your algorithm in modern, clean Python directly in your editor.
+3. **Test Instantly**: Click **`Run Tests`** (`$(beaker)`) in the editor title bar to evaluate sample cases locally in <100ms.
+4. **Submit & Review**: Click **`Submit Solution`** (`$(pass-filled)`). Rate your cognitive friction (Trivial -> Looked at Solution). LeetFlow automatically updates your topic Elo and schedules your next spaced repetition review date!
+
+---
+
+## 🎯 Core Features & Pillars
+
+### 1. 🔀 Multi-Track Roadmap Switcher
+Switch between industry-standard interview preparation roadmaps with a single click. LeetFlow tracks your global progress so solving a problem in one roadmap automatically checks it off across all others:
+
+* **Blind 75** (Yangshun Tay definitive 75 questions)
+* **Grind 75** (Tech Interview Handbook time-optimized roadmap)
+* **NeetCode 25 & NeetCode 150** (Comprehensive pattern taxonomy)
+* **Top Interview 150** (LeetCode official interview study plan)
+* **Programmer Carl 200** (代码随想录 progressive step-by-step curriculum)
+
+<!-- SCREENSHOT: Practice Tracks Sidebar -->
+<!-- Placeholder: Close-up of the Practice Tracks sidebar showing the Switch Roadmap quickpick and categorized folders with progress badges (e.g. Array & Hashing 7/10) -->
+
+---
+
+### 2. 🐍 Modern Python 3.14+ Template Engine
+LeetCode default templates are stuck in Python 2/early-Python 3 conventions. LeetFlow automatically modernizes all problem templates on the fly:
+
+#### ❌ Before (Default LeetCode Template):
+```python
+class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+        pass
+```
+
+#### ✔ After (LeetFlow Modernized Template):
+```python
+class Solution:
+    def two_sum(self, nums: list[int], target: int) -> list[int]:
+        # PEP 8 snake_case + PEP 585 built-in generic collections
+        pass
+```
+
+* **PEP 8 Compliance**: Converts `camelCase` method names to `snake_case`.
+* **PEP 585 Generics**: Replaces deprecated `typing.List`, `Dict`, `Tuple` with `list[int]`, `dict[str, int]`.
+* **PEP 604 Unions**: Converts `Optional[TreeNode]` to clean pipe syntax `TreeNode | None`.
+* **Auto-Injected Helpers**: Automatically provides typed `ListNode` and `TreeNode` class definitions directly in your file so your IDE language server never complains.
+
+---
+
+### 3. 🧠 Spaced Repetition (SM-2) & Adaptive Elo Engine
+Never solve 100 problems only to forget how to traverse a graph a month later.
+
+* **Topic-Based Elo Ratings**: Calibrates your exact mastery score per category (Dynamic Programming, Binary Search, Trees, Graphs, Sliding Window).
+* **SuperMemo-2 (SM-2) Scheduling**: Calculates optimal review intervals based on your self-reported cognitive friction rating:
+  * **1 - Trivial**: Instant recall (+15 Elo, long review interval).
+  * **2 - Smooth**: Solved with natural flow (+10 Elo).
+  * **3 - Struggled**: Needed multiple attempts or significant debugging (-5 Elo, short review interval).
+  * **4 - Looked at Solution**: Required looking up the pattern (-20 Elo, resets SM-2 interval to 1 day).
+
+<!-- SCREENSHOT: Proficiency & Telemetry Sidebar -->
+<!-- Placeholder: Close-up of the Proficiency & Telemetry sidebar panel showing Total Solved, Active Roadmap %, Zero-Shot accuracy, Average Duration, and Topic Mastery Elo ratings -->
+
+---
+
+### 4. 🔍 Universal Sourcing & Ephemeral Sandbox
+* **Open Anything**: Open problems by numeric ID (`#1`, `#269`), slug (`container-with-most-water`), or full URL (`leetcode.com` and `leetcode.cn`).
+* **Locked & Premium Problem Sourcing**: Built-in fallback mirrors cleanly parse problem statements, test cases, and starter templates for premium questions with zero paywalls.
+* **Isolated Subprocess Sandbox**: Runs your code in an ephemeral OS temporary directory with zero file pollution and a strict **4.0-second infinite loop guard**.
+
+---
+
+### 5. 📊 Interactive Console Dashboard & Data Sovereignty
+Click **`Open Console & Control Dashboard`** to access the complete 3-tab interactive management center:
+
+* **Tab 1: Telemetry & Mastery**: View your cognitive friction distribution, topic Elo ratings, and review schedule.
+* **Tab 2: Attempt History Ledger**: Chronological log of every problem attempt with solve duration, date, thinking time, and friction rating.
+* **Tab 3: Data Management**: Full **Export JSON Backup**, **Import Data**, and safe one-click **Reset** capability.
+
+<!-- SCREENSHOT: Console Dashboard Webview -->
+<!-- Placeholder: Screenshot of the LeetFlow Console Webview showing the 3 tabs (Telemetry, History Ledger, Data Management) with interactive statistics and charts -->
+
+---
+
+### 6. ⏱ Status Bar Stopwatch (with Click-to-Pause)
+A clean, non-intrusive status bar stopwatch tracks your active problem solving time:
+
+* **Active Solving**: `LeetFlow: ⏱ 04:12`
+* **Paused**: `LeetFlow: ⏸ 04:12 (PAUSED)` (Click status bar to pause when taking a break or stepping away; paused time is excluded from telemetry).
+* **Hover Tooltip**: Shows the active problem title and click-to-pause/resume prompt.
+
+<!-- SCREENSHOT: Status Bar Timer -->
+<!-- Placeholder: Close-up of the VS Code bottom status bar showing the LeetFlow timer in active and paused states -->
+
+---
+
+## ⌨️ Command Palette Reference
+
+| Command | Action | Shortcut / Trigger |
+|---|---|---|
+| `LeetFlow: Next Recommended Problem` | Launches the next optimal problem calibrated to your Elo | `Cmd+Shift+P` -> `LeetFlow: Next` |
+| `LeetFlow: Open Problem` | Opens problem by # (e.g. `11`), slug, or LeetCode URL | Practice Tracks header $(search) icon |
+| `LeetFlow: Switch Active Roadmap Track...` | Switches between Blind 75, Grind 75, NeetCode 150, etc. | Practice Tracks header $(arrow-swap) icon |
+| `LeetFlow: Run Tests` | Executes current solution against test cases in sandbox | Editor title bar $(beaker) icon |
+| `LeetFlow: Submit Solution` | Submits solution, logs friction, and updates Elo | Editor title bar $(pass-filled) icon |
+| `LeetFlow: Pause / Resume Stopwatch Timer` | Toggles timer pause state | Click status bar timer |
+| `LeetFlow: Open Console & Control Dashboard` | Opens the full 3-tab interactive dashboard | Telemetry panel $(dashboard) icon |
+| `LeetFlow: Modernize Python Solution` | Upgrades active file to PEP 8 snake_case & PEP 585/604 | `Cmd+Shift+P` -> `LeetFlow: Modernize` |
+
+---
+
+## 📦 Installation
+
+### Option 1: Install from VS Code Marketplace (Recommended)
+Search for **`LeetFlow`** by **`dev-ansung`** in the VS Code Extensions tab (`Cmd+Shift+X`) and click **Install**.
+
+### Option 2: Install from GitHub Release (.vsix)
+1. Download the latest `leetflow-1.0.0.vsix` from **[GitHub Releases](https://github.com/dev-ansung/leetflow/releases)**.
+2. In VS Code, open Extensions (`Cmd+Shift+X`) -> Click `...` -> **Install from VSIX...**.
 
 *Or install via terminal:*
 ```bash
 code --install-extension leetflow-1.0.0.vsix --force
 ```
 
-### Option B: Build from Source
-Requirements: [Bun](https://bun.sh) and [VS Code](https://code.visualstudio.com/).
-
+### Option 3: Build from Source
 ```bash
-# 1. Clone repository
 git clone https://github.com/dev-ansung/leetflow.git
 cd leetflow
-
-# 2. Install dependencies & run tests
 bun install
 bun test
-
-# 3. Package extension
 bun run package
-
-# 4. Install into VS Code
 code --install-extension artifacts/vsix/leetflow-1.0.0.vsix --force
 ```
 
 ---
 
-## 5. Development & Testing
+## 🤝 Author & License
 
-```bash
-# Run unit & integration test suites
-bun test
-
-# Run Biome linter & code formatter
-bun run lint
-bun run lint:fix
-
-# Compile bundle
-bun run build
-```
-
----
-
-## 6. License & Author
-
-Created and maintained by **[dev-ansung](https://github.com/dev-ansung)**.
+Created with ❤️ by **[dev-ansung](https://github.com/dev-ansung)**.
 
 Licensed under the **[MIT License](LICENSE)**.
