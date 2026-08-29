@@ -1,0 +1,105 @@
+{
+  "name": "leetflow",
+  "displayName": "LeetFlow",
+  "description": "Intelligent, adaptive LeetCode practice companion with local test runners and spaced repetition.",
+  "version": "0.1.0",
+  "publisher": "leetflow",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "leetcode",
+    "algorithms",
+    "practice",
+    "python",
+    "interview"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "leetflow.next",
+        "title": "LeetFlow: Next Recommended Problem",
+        "icon": "$(play)"
+      },
+      {
+        "command": "leetflow.test",
+        "title": "LeetFlow: Run Tests",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "leetflow.submit",
+        "title": "LeetFlow: Submit Solution",
+        "icon": "$(pass-filled)"
+      },
+      {
+        "command": "leetflow.stats",
+        "title": "LeetFlow: View Stats & Mastery",
+        "icon": "$(graph)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "leetflow-explorer",
+          "title": "LeetFlow",
+          "icon": "$(pulse)"
+        }
+      ]
+    },
+    "views": {
+      "leetflow-explorer": [
+        {
+          "id": "leetflow.tracksView",
+          "name": "Practice Tracks"
+        },
+        {
+          "id": "leetflow.statsView",
+          "name": "Proficiency & Telemetry"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "leetflow.next",
+          "when": "view == leetflow.tracksView",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "leetflow.test",
+          "group": "navigation",
+          "when": "resourceExtname == .py"
+        },
+        {
+          "command": "leetflow.submit",
+          "group": "navigation",
+          "when": "resourceExtname == .py"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "bun run build:bundle",
+    "build:bundle": "bun build ./src/extension.ts --outfile=./dist/extension.js --target=node --external=vscode --format=cjs",
+    "package": "bun run build && bunx @vscode/vsce package --no-dependencies --out artifacts/vsix/leetflow-0.1.0.vsix",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "@types/vscode": "1.85.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
