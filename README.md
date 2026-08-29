@@ -1,6 +1,6 @@
 # ⚡ LeetFlow: Practice LeetCode Uninterrupted in VS Code
 
-[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
+[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-LeetFlow-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=dev-ansung.leetflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-35%20passing-brightgreen.svg)]()
