@@ -106,7 +106,7 @@ export class LeetFlowConsoleWebview {
 
     const panel = vscode.window.createWebviewPanel(
       "leetflowConsole",
-      "LeetFlow: Control & Telemetry Console",
+      "LeetFlow Dashboard",
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -243,7 +243,7 @@ export class LeetFlowConsoleWebview {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LeetFlow Control Console</title>
+  <title>LeetFlow Dashboard</title>
   <style>
     :root {
       --bg-color: var(--vscode-editor-background, #1e1e1e);
@@ -431,7 +431,7 @@ export class LeetFlowConsoleWebview {
 <body>
   <div class="header">
     <div>
-      <h1>⚡ LeetFlow Performance & Control Console</h1>
+      <h1>⚡ LeetFlow Dashboard</h1>
       <div class="tagline">Deliberate Practice Telemetry & Local Session Management</div>
     </div>
     <div style="display: flex; gap: 8px;">

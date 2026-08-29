@@ -73,7 +73,7 @@
       },
       {
         "command": "leetflow.console",
-        "title": "Open Console & Control Dashboard",
+        "title": "Open Dashboard",
         "category": "LeetFlow",
         "icon": "$(dashboard)"
       },
