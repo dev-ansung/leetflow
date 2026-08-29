@@ -3,7 +3,7 @@
   "displayName": "LeetFlow",
   "description": "Intelligent, adaptive LeetCode practice companion with local test runners and spaced repetition.",
   "version": "0.1.0",
-  "publisher": "youngyangyang04",
+  "publisher": "dev-ansung",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -130,16 +130,16 @@
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
   },
-  "author": "LeetFlow Team",
+  "author": "dev-ansung (https://github.com/dev-ansung)",
   "license": "MIT",
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/youngyangyang04/leetflow"
+    "url": "https://github.com/dev-ansung/leetflow"
   },
-  "homepage": "https://github.com/youngyangyang04/leetflow#readme",
+  "homepage": "https://github.com/dev-ansung/leetflow#readme",
   "bugs": {
-    "url": "https://github.com/youngyangyang04/leetflow/issues"
+    "url": "https://github.com/dev-ansung/leetflow/issues"
   },
   "qna": "marketplace"
 }
