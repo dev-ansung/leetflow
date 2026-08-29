@@ -44,6 +44,11 @@
         "command": "leetflow.stats",
         "title": "LeetFlow: View Stats & Mastery",
         "icon": "$(graph)"
+      },
+      {
+        "command": "leetflow.modernizeSolution",
+        "title": "LeetFlow: Modernize Current Solution to Modern Python",
+        "category": "LeetFlow"
       }
     ],
     "viewsContainers": {

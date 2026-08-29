@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { RecommendationEngine } from "./core/recommender";
+import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
 import { RunnerFactory } from "./runners/runner-factory";
 import { type StorageAdapter, StorageManager } from "./storage/storage-manager";
@@ -196,7 +197,36 @@ export function activate(context: vscode.ExtensionContext) {
     await startProblemSession(rec.slug, context, tracksProvider, statsTreeProvider);
   });
 
-  context.subscriptions.push(nextCmd, startCmd, testCmd, submitCmd, statsCmd, reviewCmd);
+  // 9. Register Command: Modernize Python Solution
+  const modernizeCmd = vscode.commands.registerCommand("leetflow.modernizeSolution", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor?.document.fileName.endsWith(".py")) {
+      vscode.window.showWarningMessage("Please open a Python solution file to modernize.");
+      return;
+    }
+    const currentText = editor.document.getText();
+    const modernized = PythonModernizer.modernize(currentText);
+    const fullRange = new vscode.Range(
+      editor.document.positionAt(0),
+      editor.document.positionAt(currentText.length),
+    );
+    await editor.edit((editBuilder) => {
+      editBuilder.replace(fullRange, modernized);
+    });
+    vscode.window.showInformationMessage(
+      "✔ Modernized template to PEP 8 snake_case & PEP 585/604 types!",
+    );
+  });
+
+  context.subscriptions.push(
+    nextCmd,
+    startCmd,
+    testCmd,
+    submitCmd,
+    statsCmd,
+    reviewCmd,
+    modernizeCmd,
+  );
 }
 
 async function startProblemSession(
@@ -226,6 +256,13 @@ async function startProblemSession(
 
         if (!fs.existsSync(solutionPath)) {
           fs.writeFileSync(solutionPath, problem.starterCode, "utf-8");
+        } else {
+          // If existing solution contains outdated typing, auto-upgrade
+          const existing = fs.readFileSync(solutionPath, "utf-8");
+          if (existing.includes("List[") || existing.includes("Optional[")) {
+            const upgraded = PythonModernizer.modernize(existing);
+            fs.writeFileSync(solutionPath, upgraded, "utf-8");
+          }
         }
         fs.writeFileSync(testsPath, JSON.stringify(problem.testCases, null, 2), "utf-8");
 
