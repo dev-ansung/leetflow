@@ -70,6 +70,12 @@
         "title": "LeetFlow: Open Console & Control Dashboard",
         "category": "LeetFlow",
         "icon": "$(dashboard)"
+      },
+      {
+        "command": "leetflow.switchTrack",
+        "title": "LeetFlow: Switch Active Roadmap Track...",
+        "category": "LeetFlow",
+        "icon": "$(sync)"
       }
     ],
     "viewsContainers": {

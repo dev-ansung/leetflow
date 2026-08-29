@@ -1,72 +1,72 @@
-import { CURRICULUM_DATASET, type CurriculumProblem } from "../data/curriculum";
+import { type TrackProblem, TrackRegistry } from "../data/track-registry";
 import type { StorageManager } from "../storage/storage-manager";
+
+export interface RecommendationResult {
+  problem: TrackProblem;
+  reason: "due_review" | "elo_match" | "curriculum_progression";
+  confidenceScore: number;
+}
 
 export class RecommendationEngine {
   constructor(private storage: StorageManager) {}
 
-  async recommendNext(filter?: {
-    topic?: string;
-    difficulty?: "Easy" | "Medium" | "Hard";
-  }): Promise<CurriculumProblem> {
-    let pool = CURRICULUM_DATASET;
-
-    if (filter?.topic) {
-      pool = pool.filter((p) => p.topic === filter.topic);
-    }
-    if (filter?.difficulty) {
-      pool = pool.filter((p) => p.difficulty === filter.difficulty);
-    }
-
-    if (pool.length === 0) {
-      pool = CURRICULUM_DATASET;
-    }
-
+  async recommendNext(customTrackId?: string): Promise<TrackProblem> {
+    const trackId = customTrackId || (await this.storage.getActiveTrackId());
+    const problems = TrackRegistry.getTrackProblems(trackId);
     const attempts = await this.storage.getAttempts();
-    const solvedSet = new Set(attempts.filter((a) => a.passed).map((a) => a.slug));
-
-    // 1. Check for due spaced reviews
+    const passedSlugs = new Set(attempts.filter((a) => a.passed).map((a) => a.slug));
     const now = Date.now();
-    for (const p of pool) {
-      if (solvedSet.has(p.slug)) {
+
+    // 1. Check for Due Reviews (Spaced Repetition SM-2 priority)
+    const dueProblems: { problem: TrackProblem; daysOverdue: number }[] = [];
+    for (const p of problems) {
+      if (passedSlugs.has(p.slug)) {
         const mastery = await this.storage.getTopicMastery(p.topic);
-        if (mastery.nextReviewDue && new Date(mastery.nextReviewDue).getTime() <= now) {
-          return p;
+        if (mastery.nextReviewDue) {
+          const dueDate = new Date(mastery.nextReviewDue).getTime();
+          if (dueDate <= now) {
+            dueProblems.push({
+              problem: p,
+              daysOverdue: (now - dueDate) / (24 * 3600 * 1000),
+            });
+          }
         }
       }
     }
 
-    // 2. Score unattempted candidates
-    let bestCandidate = pool[0];
-    let highestScore = -Infinity;
-
-    for (const p of pool) {
-      const isSolved = solvedSet.has(p.slug);
-      const mastery = await this.storage.getTopicMastery(p.topic);
-
-      // Topic decay / recency weight
-      let decayScore = 1.0;
-      if (mastery.lastPracticedAt) {
-        const daysSince = (now - new Date(mastery.lastPracticedAt).getTime()) / (24 * 3600 * 1000);
-        decayScore = Math.min(2.0, 1.0 + daysSince * 0.1);
-      } else {
-        decayScore = 1.5; // Unpracticed topic boost
-      }
-
-      // Zone of proximal development (match difficulty to Elo)
-      const targetElo = p.difficulty === "Easy" ? 1200 : p.difficulty === "Medium" ? 1600 : 2000;
-      const eloDiff = Math.abs(mastery.elo - targetElo);
-      const eloMatchScore = Math.max(0.2, 1.0 - eloDiff / 1000);
-
-      const unattemptedBonus = isSolved ? 0.2 : 1.5;
-
-      const score = decayScore * 0.4 + eloMatchScore * 0.3 + unattemptedBonus * 0.3;
-
-      if (score > highestScore) {
-        highestScore = score;
-        bestCandidate = p;
-      }
+    if (dueProblems.length > 0) {
+      dueProblems.sort((a, b) => b.daysOverdue - a.daysOverdue);
+      return dueProblems[0].problem;
     }
 
-    return bestCandidate;
+    // 2. Recommend Unsolved Problems Matching Elo Zone of Proximal Development
+    const unsolved = problems.filter((p) => !passedSlugs.has(p.slug));
+    if (unsolved.length > 0) {
+      const topicMasteries: Record<string, number> = {};
+      for (const p of unsolved) {
+        if (!topicMasteries[p.topic]) {
+          const m = await this.storage.getTopicMastery(p.topic);
+          topicMasteries[p.topic] = m.elo;
+        }
+      }
+
+      unsolved.sort((a, b) => {
+        const eloA = topicMasteries[a.topic] || 1200;
+        const eloB = topicMasteries[b.topic] || 1200;
+
+        const targetEloA = a.difficulty === "Easy" ? 1200 : a.difficulty === "Medium" ? 1600 : 2000;
+        const targetEloB = b.difficulty === "Easy" ? 1200 : b.difficulty === "Medium" ? 1600 : 2000;
+
+        const diffA = Math.abs(eloA - targetEloA);
+        const diffB = Math.abs(eloB - targetEloB);
+
+        return diffA - diffB;
+      });
+
+      return unsolved[0];
+    }
+
+    // If all solved in this track, fallback to first problem
+    return problems[0] || TrackRegistry.getTrackProblems("blind75")[0];
   }
 }

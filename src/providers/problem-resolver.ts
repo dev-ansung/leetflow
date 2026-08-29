@@ -1,4 +1,4 @@
-import { CURRICULUM_DATASET } from "../data/curriculum";
+import { TrackRegistry } from "../data/track-registry";
 
 export class ProblemResolver {
   private static readonly GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
@@ -31,10 +31,10 @@ export class ProblemResolver {
     if (/^\d+$/.test(clean)) {
       const numId = parseInt(clean, 10);
 
-      // Check curriculum dataset first (instant offline resolution)
-      const cur = CURRICULUM_DATASET.find((p) => p.id === numId);
-      if (cur) {
-        return cur.slug;
+      // Check track registry first (instant offline resolution across all roadmaps)
+      const found = TrackRegistry.findProblem(numId);
+      if (found) {
+        return found.slug;
       }
 
       // Query LeetCode GraphQL by problem number
@@ -46,7 +46,12 @@ export class ProblemResolver {
       throw new Error(`LeetCode problem #${numId} not found`);
     }
 
-    // 2. If it is already a slug (e.g. "container-with-most-water")
+    // 2. If it is already a slug
+    const foundBySlug = TrackRegistry.findProblem(clean);
+    if (foundBySlug) {
+      return foundBySlug.slug;
+    }
+
     if (/^[a-z0-9-]+$/.test(clean)) {
       return clean;
     }
@@ -87,7 +92,7 @@ export class ProblemResolver {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) LeetFlow/0.1.0",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) LeetFlow/1.0.0",
         },
         body: JSON.stringify({
           query,

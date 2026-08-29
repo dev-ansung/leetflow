@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { RecommendationEngine } from "./core/recommender";
 import { SessionManager } from "./core/session-manager";
 import { TopicNormalizer } from "./data/topic-normalizer";
+import { TrackRegistry } from "./data/track-registry";
 import { PythonModernizer } from "./modernizer/python-modernizer";
 import { LeetCodeProvider } from "./providers/leetcode";
 import { ProblemResolver } from "./providers/problem-resolver";
@@ -278,6 +279,37 @@ export function activate(context: vscode.ExtensionContext) {
     });
   });
 
+  // 13. Register Command: Switch Active Roadmap Track
+  const switchTrackCmd = vscode.commands.registerCommand("leetflow.switchTrack", async () => {
+    const tracks = TrackRegistry.getAllTracks();
+    const activeId = await storage.getActiveTrackId();
+
+    const items = tracks.map((t) => {
+      const pCount = TrackRegistry.getTrackProblems(t.id).length;
+      const isCurrent = t.id === activeId;
+      return {
+        label: `${isCurrent ? "$(check) " : ""}${t.name}`,
+        description: `${pCount} problems · ${t.author || "Curated"}`,
+        detail: t.description,
+        trackId: t.id,
+      };
+    });
+
+    const selected = await vscode.window.showQuickPick(items, {
+      title: "LeetFlow: Select Active Study Roadmap",
+      placeHolder: "Choose your primary deliberate practice roadmap",
+    });
+
+    if (selected && selected.trackId !== activeId) {
+      await storage.setActiveTrackId(selected.trackId);
+      tracksProvider.refresh();
+      statsTreeProvider.refresh();
+      vscode.window.showInformationMessage(
+        `🎯 Switched active roadmap to ${selected.label.replace("$(check) ", "")}!`,
+      );
+    }
+  });
+
   context.subscriptions.push(
     nextCmd,
     startCmd,
@@ -289,6 +321,7 @@ export function activate(context: vscode.ExtensionContext) {
     resetCmd,
     openProblemCmd,
     consoleCmd,
+    switchTrackCmd,
   );
 }
 

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { CURRICULUM_DATASET, type CurriculumProblem } from "../data/curriculum";
+import { TrackRegistry } from "../data/track-registry";
 import type { StorageManager } from "../storage/storage-manager";
 
 export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -27,19 +27,25 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     const attempts = this.storage ? await this.storage.getAttempts() : [];
     const solvedSlugs = new Set(attempts.filter((a) => a.passed).map((a) => a.slug));
+    const activeTrackId = this.storage ? await this.storage.getActiveTrackId() : "blind75";
+    const activeTrack = TrackRegistry.getTrack(activeTrackId);
 
     if (!element) {
-      const b75 = CURRICULUM_DATASET.filter((p) => p.isBlind75);
-      const b75Solved = b75.filter((p) => solvedSlugs.has(p.slug)).length;
+      const activeProblems = TrackRegistry.getTrackProblems(activeTrack.id);
+      const activeSolved = activeProblems.filter((p) => solvedSlugs.has(p.slug)).length;
+      const activePct =
+        activeProblems.length > 0 ? Math.round((activeSolved / activeProblems.length) * 100) : 0;
 
+      // 1. Next Problem
       const nextItem = new vscode.TreeItem(
         "Next Recommended Problem",
         vscode.TreeItemCollapsibleState.None,
       );
       nextItem.iconPath = new vscode.ThemeIcon("zap", new vscode.ThemeColor("charts.yellow"));
       nextItem.command = { command: "leetflow.next", title: "Next Problem" };
-      nextItem.description = "Auto-calibrated";
+      nextItem.description = `Auto-match (${activeTrack.name})`;
 
+      // 2. Quick Open
       const openItem = new vscode.TreeItem(
         "Open Problem by # / URL",
         vscode.TreeItemCollapsibleState.None,
@@ -48,86 +54,102 @@ export class LeetFlowTracksProvider implements vscode.TreeDataProvider<vscode.Tr
       openItem.command = { command: "leetflow.openProblem", title: "Open Problem" };
       openItem.description = "Quick open";
 
+      // 3. Switch Track
+      const switchItem = new vscode.TreeItem(
+        "Switch Active Roadmap...",
+        vscode.TreeItemCollapsibleState.None,
+      );
+      switchItem.iconPath = new vscode.ThemeIcon("sync", new vscode.ThemeColor("charts.purple"));
+      switchItem.command = { command: "leetflow.switchTrack", title: "Switch Roadmap" };
+      switchItem.description = activeTrack.name;
+
+      // 4. Console Dashboard
       const consoleItem = new vscode.TreeItem(
         "Console & Control Center",
         vscode.TreeItemCollapsibleState.None,
       );
-      consoleItem.iconPath = new vscode.ThemeIcon(
-        "dashboard",
-        new vscode.ThemeColor("charts.purple"),
-      );
+      consoleItem.iconPath = new vscode.ThemeIcon("dashboard");
       consoleItem.command = { command: "leetflow.console", title: "Open Console" };
-      consoleItem.description = "History & stats";
 
-      const b75Root = new vscode.TreeItem(
-        "Blind 75 Roadmap",
+      // 5. Active Track Root
+      const activeRoot = new vscode.TreeItem(
+        `🎯 ${activeTrack.name}`,
         vscode.TreeItemCollapsibleState.Expanded,
       );
-      b75Root.contextValue = "blind75_root";
-      b75Root.iconPath = new vscode.ThemeIcon("list-ordered");
-      b75Root.description = `${b75Solved}/${b75.length} (${Math.round((b75Solved / b75.length) * 100)}%)`;
+      activeRoot.contextValue = `track_root_${activeTrack.id}`;
+      activeRoot.iconPath = new vscode.ThemeIcon("target");
+      activeRoot.description = `${activeSolved}/${activeProblems.length} (${activePct}%)`;
 
-      const topicsRoot = new vscode.TreeItem(
-        "All Topics & Patterns",
+      // 6. All Tracks Folder
+      const allTracksRoot = new vscode.TreeItem(
+        "📚 All Curated Roadmaps",
         vscode.TreeItemCollapsibleState.Collapsed,
       );
-      topicsRoot.contextValue = "topics_root";
-      topicsRoot.iconPath = new vscode.ThemeIcon("folder");
+      allTracksRoot.contextValue = "all_tracks_root";
+      allTracksRoot.iconPath = new vscode.ThemeIcon("library");
+      allTracksRoot.description = `${TrackRegistry.getAllTracks().length} study plans`;
 
-      return [nextItem, openItem, consoleItem, b75Root, topicsRoot];
+      return [nextItem, openItem, switchItem, consoleItem, activeRoot, allTracksRoot];
     }
 
-    if (element.contextValue === "blind75_root") {
-      const b75 = CURRICULUM_DATASET.filter((p) => p.isBlind75);
-      const topics = Array.from(new Set(b75.map((p) => p.topic)));
+    // Expanding Active Track
+    if (element.contextValue?.startsWith("track_root_")) {
+      const trackId = element.contextValue.replace("track_root_", "");
+      const track = TrackRegistry.getTrack(trackId);
 
-      return topics.map((t) => {
-        const topicProblems = b75.filter((p) => p.topic === t);
-        const solvedCount = topicProblems.filter((p) => solvedSlugs.has(p.slug)).length;
-        const totalCount = topicProblems.length;
+      return track.categories.map((cat) => {
+        const catProblems = cat.problems;
+        const solvedCount = catProblems.filter((p) => solvedSlugs.has(p.slug)).length;
+        const totalCount = catProblems.length;
 
-        const topicFolder = new vscode.TreeItem(t, vscode.TreeItemCollapsibleState.Collapsed);
-        topicFolder.contextValue = `b75_topic_${t}`;
-        topicFolder.description = `${solvedCount}/${totalCount}`;
-        topicFolder.iconPath =
-          solvedCount === totalCount
+        const catFolder = new vscode.TreeItem(cat.name, vscode.TreeItemCollapsibleState.Collapsed);
+        catFolder.contextValue = `cat_${track.id}_${cat.name}`;
+        catFolder.description = `${solvedCount}/${totalCount}`;
+        catFolder.iconPath =
+          solvedCount === totalCount && totalCount > 0
             ? new vscode.ThemeIcon("pass-filled", new vscode.ThemeColor("charts.green"))
             : new vscode.ThemeIcon("symbol-folder");
-        return topicFolder;
+        return catFolder;
       });
     }
 
-    if (element.contextValue?.startsWith("b75_topic_")) {
-      const topicName = element.contextValue.replace("b75_topic_", "");
-      const problems = CURRICULUM_DATASET.filter((p) => p.isBlind75 && p.topic === topicName);
-      return problems.map((p) => this.createProblemItem(p, solvedSlugs.has(p.slug)));
+    // Expanding Category inside Track
+    if (element.contextValue?.startsWith("cat_")) {
+      const parts = element.contextValue.split("_");
+      const trackId = parts[1];
+      const catName = parts.slice(2).join("_");
+      const track = TrackRegistry.getTrack(trackId);
+      const cat = track.categories.find((c) => c.name === catName);
+
+      if (!cat) return [];
+      return cat.problems.map((p) => this.createProblemItem(p, cat.name, solvedSlugs.has(p.slug)));
     }
 
-    if (element.contextValue === "topics_root") {
-      const topics = Array.from(new Set(CURRICULUM_DATASET.map((p) => p.topic)));
-      return topics.map((t) => {
-        const topicProblems = CURRICULUM_DATASET.filter((p) => p.topic === t);
-        const solvedCount = topicProblems.filter((p) => solvedSlugs.has(p.slug)).length;
-        const totalCount = topicProblems.length;
+    // Expanding "All Curated Roadmaps"
+    if (element.contextValue === "all_tracks_root") {
+      const allTracks = TrackRegistry.getAllTracks();
+      return allTracks.map((t) => {
+        const tProblems = TrackRegistry.getTrackProblems(t.id);
+        const solvedCount = tProblems.filter((p) => solvedSlugs.has(p.slug)).length;
+        const totalCount = tProblems.length;
+        const pct = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
 
-        const topicFolder = new vscode.TreeItem(t, vscode.TreeItemCollapsibleState.Collapsed);
-        topicFolder.contextValue = `all_topic_${t}`;
-        topicFolder.description = `${solvedCount}/${totalCount}`;
-        topicFolder.iconPath = new vscode.ThemeIcon("folder");
-        return topicFolder;
+        const tItem = new vscode.TreeItem(t.name, vscode.TreeItemCollapsibleState.Collapsed);
+        tItem.contextValue = `track_root_${t.id}`;
+        tItem.description = `${solvedCount}/${totalCount} (${pct}%)`;
+        tItem.iconPath = new vscode.ThemeIcon("book");
+        return tItem;
       });
-    }
-
-    if (element.contextValue?.startsWith("all_topic_")) {
-      const topicName = element.contextValue.replace("all_topic_", "");
-      const problems = CURRICULUM_DATASET.filter((p) => p.topic === topicName);
-      return problems.map((p) => this.createProblemItem(p, solvedSlugs.has(p.slug)));
     }
 
     return [];
   }
 
-  private createProblemItem(p: CurriculumProblem, isSolved: boolean): vscode.TreeItem {
+  private createProblemItem(
+    p: { id: number; slug: string; title: string; difficulty: "Easy" | "Medium" | "Hard" },
+    _topic: string,
+    isSolved: boolean,
+  ): vscode.TreeItem {
     const item = new vscode.TreeItem(`#${p.id} ${p.title}`, vscode.TreeItemCollapsibleState.None);
     item.contextValue = "problem_item";
     item.description = `${p.difficulty}`;

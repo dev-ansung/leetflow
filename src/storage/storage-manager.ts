@@ -146,6 +146,14 @@ export class StorageManager {
     return { newElo, delta, nextIntervalDays };
   }
 
+  async getActiveTrackId(): Promise<string> {
+    return this.adapter.get<string>("active_track_id", "blind75");
+  }
+
+  async setActiveTrackId(trackId: string): Promise<void> {
+    await this.adapter.update("active_track_id", trackId);
+  }
+
   async resetAll(): Promise<void> {
     if (this.adapter.clear) {
       await this.adapter.clear();
