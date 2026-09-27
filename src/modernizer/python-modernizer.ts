@@ -1,11 +1,11 @@
 export class PythonModernizer {
-  private static readonly LIST_NODE_DEF = `class ListNode:
+  private static readonly LIST_NODE_DEF = `class ListNode: pass\n\nclass ListNode:
     def __init__(self, val: int = 0, next: ListNode | None = None):
         self.val = val
         self.next = next
 `;
 
-  private static readonly TREE_NODE_DEF = `class TreeNode:
+  private static readonly TREE_NODE_DEF = `class TreeNode: pass\n\nclass TreeNode:
     def __init__(self, val: int = 0, left: TreeNode | None = None, right: TreeNode | None = None):
         self.val = val
         self.left = left
