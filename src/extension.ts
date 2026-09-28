@@ -178,7 +178,7 @@ export function activate(context: vscode.ExtensionContext) {
       targetSec: problem.targetTimeSeconds,
       thinkingSec,
       passed: true,
-      frictionRating: ratingVal,
+      frictionRating: _frictionChoice.value,
     });
 
     stopTimer();
